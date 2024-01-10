@@ -158,7 +158,7 @@ class PhysicsEngine:
 
     def __velocity_feet_to_talon_ticks(self, velocity_in_feet: float) -> int:
         wheel_rotations_per_second = (velocity_in_feet * 12) / (
-            2 * math.pi * constants.DT_WHEEL_DIAMETER.m_as(units.inch)
+            2 * math.pi * constants.DT_WHEEL_DIAMETER
         )
         wheel_rotations_per_100ms = (
             wheel_rotations_per_second * constants.DT_GEAR_RATIO
@@ -171,7 +171,7 @@ class PhysicsEngine:
 
     def __velocity_meters_to_talon_ticks(self, velocity_in_meters: float) -> int:
         wheel_rotations_per_second = velocity_in_meters / (
-            2 * math.pi * constants.DT_WHEEL_DIAMETER.m_as(units.meter)
+            2 * math.pi * constants.DT_WHEEL_DIAMETER
         )
         wheel_rotations_per_100ms = (
             wheel_rotations_per_second * constants.DT_GEAR_RATIO

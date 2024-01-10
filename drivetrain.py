@@ -12,8 +12,6 @@ from phoenix6.sim import ChassisReference
 from phoenix6.controls import DutyCycleOut, VoltageOut
 
 import constants
-import math
-from pyfrc.physics.units import units
 
 
 class DriveTrain(Subsystem):

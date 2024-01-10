@@ -22,9 +22,11 @@ robotpy_extras = [
     # "playingwithfusion"
     # "rev"
     # "romi"
-    "sim",
+    # "sim",
     # "xrp"
 ]
 
 # Other pip packages to install
-requires = []
+requires = [
+    "robotpy-commands-v2==2024.0.0b4",
+]
