@@ -3,6 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore all the CTRE Simulation artifacts
+ctre_sim/
+
+# Ignore specific GUI elements
+simgui*
+
+# Ignore networktables JSON file
+networktables.json
+
 # C extensions
 *.so
 
