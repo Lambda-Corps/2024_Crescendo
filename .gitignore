@@ -12,7 +12,7 @@ simgui*
 # Ignore networktables JSON file
 networktables.json
 
-# Ignore the WPILib tests directory
+# Ignore the Robot py tests directory
 tests/
 
 # Ignore the WPILib hidden directory contents
