@@ -66,3 +66,13 @@ Because you're following the steps from this repository, the basic python projec
 1. Create the physics.py file for our simulation
     ```python -m robotpy create-physics```
 1. Edit the _robot.py_ file to have an actual robot in code.
+
+# Troubleshooting
+We saw on some of the laptops that updating Robotpy didn't work well.  The only way to get the new version installed correctly was to remove all the old related robotpy packages, and uninstall them.  If you need to remove the robotpy related Python packages and reinstall them try the following command in the laptop's terminal:
+```
+$ for i in `pip list | grep robotpy | cut -d ' ' -f1` ; do pip uninstall -y $i ; done
+```
+Then, reinstall robotpy:
+```
+$ pip install robotpy
+ ```

@@ -12,6 +12,12 @@ simgui*
 # Ignore networktables JSON file
 networktables.json
 
+# Ignore the WPILib tests directory
+tests/
+
+# Ignore the WPILib hidden directory contents
+.wpilib/
+
 # C extensions
 *.so
 
