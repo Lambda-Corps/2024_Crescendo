@@ -69,15 +69,15 @@ class PhysicsEngine:
         self._l_lead_motor: phoenix6.sim.TalonFXSimState = (
             robot._drivetrain._left_leader.sim_state
         )
-        self._l_follow_motor: phoenix6.sim.TalonFXSimState = (
-            robot._drivetrain._left_follower.sim_state
-        )
+        # self._l_follow_motor: phoenix6.sim.TalonFXSimState = (
+        #     robot._drivetrain._left_follower.sim_state
+        # )
         self._r_lead_motor: phoenix6.sim.TalonFXSimState = (
             robot._drivetrain._right_leader.sim_state
         )
-        self._r_follow_motor: phoenix6.sim.TalonFXSimState = (
-            robot._drivetrain._right_follower.sim_state
-        )
+        # self._r_follow_motor: phoenix6.sim.TalonFXSimState = (
+        #     robot._drivetrain._right_follower.sim_state
+        # )
 
     def update_sim(self, now: float, tm_diff: float) -> None:
         """
@@ -101,12 +101,12 @@ class PhysicsEngine:
         self._r_lead_motor.set_supply_voltage(
             wpilib.RobotController.getBatteryVoltage()
         )
-        self._l_follow_motor.set_supply_voltage(
-            wpilib.RobotController.getBatteryVoltage()
-        )
-        self._r_follow_motor.set_supply_voltage(
-            wpilib.RobotController.getBatteryVoltage()
-        )
+        # self._l_follow_motor.set_supply_voltage(
+        #     wpilib.RobotController.getBatteryVoltage()
+        # )
+        # self._r_follow_motor.set_supply_voltage(
+        #     wpilib.RobotController.getBatteryVoltage()
+        # )
 
         # Apply the motor inputs to the simulation
         self._drivesim.setInputs(
@@ -131,18 +131,18 @@ class PhysicsEngine:
         self._r_lead_motor.set_rotor_velocity(
             self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
         )
-        self._l_follow_motor.set_raw_rotor_position(
-            self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
-        )
-        self._l_follow_motor.set_rotor_velocity(
-            self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
-        )
-        self._r_follow_motor.set_raw_rotor_position(
-            self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
-        )
-        self._r_follow_motor.set_rotor_velocity(
-            self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
-        )
+        # self._l_follow_motor.set_raw_rotor_position(
+        #     self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
+        # )
+        # self._l_follow_motor.set_rotor_velocity(
+        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
+        # )
+        # self._r_follow_motor.set_raw_rotor_position(
+        #     self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
+        # )
+        # self._r_follow_motor.set_rotor_velocity(
+        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
+        # )
 
         # Update the gyro simulation
         # -> FRC gyros are positive clockwise, but the returned pose is positive

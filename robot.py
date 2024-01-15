@@ -46,7 +46,7 @@ class MyRobot(TimedCommandRobot):
             RunCommand(
                 lambda: self._drivetrain.drive_manually(
                     -self._driver_controller.getRawAxis(1),
-                    self._driver_controller.getRawAxis(2),
+                    self._driver_controller.getRawAxis(0),
                 ),
                 self._drivetrain,
             )
