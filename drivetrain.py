@@ -31,8 +31,8 @@ class DriveTrain(Subsystem):
         self._right_volts_out: VoltageOut = VoltageOut(0, enable_foc=False)
         self._right_volts_out.update_freq_hz = 0
 
-        self._left_follower.set_control(Follower(self._left_leader.device_id, False))
-        self._right_follower.set_control(Follower(self._right_leader.device_id, False))
+        self._left_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
+        self._right_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
 
     def __configure_left_side_drive(self) -> None:
         # Applying a new configuration will erase all other config settings since we start with a blank config
@@ -50,6 +50,7 @@ class DriveTrain(Subsystem):
         self._left_leader.configurator.apply(config)
         self._left_follower.configurator.apply(config)
 
+        self._left_follower.set_control(Follower(self._left_leader.device_id, False))
         self._left_leader.sim_state.Orientation = (
             ChassisReference.CounterClockwise_Positive
         )
@@ -73,12 +74,18 @@ class DriveTrain(Subsystem):
         self._right_leader.configurator.apply(config)
         self._right_follower.configurator.apply(config)
 
+        self._right_follower.set_control(Follower(self._right_leader.device_id, False))
         self._right_leader.sim_state.Orientation = ChassisReference.Clockwise_Positive
         self._right_follower.sim_state.Orientation = ChassisReference.Clockwise_Positive
 
     def drive_manually(self, turn: float, forward: float) -> None:
-        self._left_volts_out.output = (forward + turn) * 12.0
-        self._right_volts_out.output = (forward - turn) * 12.0
+        # self._left_volts_out.output = (forward + turn) * 12.0
+        # self._right_volts_out.output = (forward - turn) * 12.0
 
-        self._left_leader.set_control(self._left_volts_out)
-        self._right_leader.set_control(self._right_volts_out)
+        # self._left_leader.set_control(self._left_volts_out)
+        # self._right_leader.set_control(self._right_volts_out)
+        self._left_percent_out.output = forward + turn
+        self._right_percent_out.output = forward - turn
+
+        self._left_leader.set_control(self._left_percent_out)
+        self._right_leader.set_control(self._right_percent_out)
