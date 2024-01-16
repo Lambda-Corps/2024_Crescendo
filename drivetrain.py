@@ -18,11 +18,6 @@ class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
 
-        self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
-        # self._left_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
-        self._right_leader = TalonFX(constants.DT_RIGHT_LEADER)
-        # self._right_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
-
         self.__configure_left_side_drive()
         self.__configure_right_side_drive()
 
@@ -35,30 +30,8 @@ class DriveTrain(Subsystem):
         self._right_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
 
     def __configure_left_side_drive(self) -> None:
-        # Applying a new configuration will erase all other config settings since we start with a blank config
-        # so each setting needs to be explicitly set here in the config method
-        config = TalonFXConfiguration()
-
-        # Set the left side motors to be counter clockwise positive
-        config.motor_output.inverted = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
-        # Set the motors to electrically stop instead of coast
-        config.motor_output.neutral_mode = NeutralModeValue.BRAKE
-        # PID controls will use integrated encoder
-        config.feedback.feedback_sensor_source = FeedbackSensorSourceValue.ROTOR_SENSOR
-
-        # Apply the configuration to the motors
-        self._left_leader.configurator.apply(config)
-        # self._left_follower.configurator.apply(config)
-
-        # self._left_follower.set_control(Follower(self._left_leader.device_id, False))
-        self._left_leader.sim_state.Orientation = (
-            ChassisReference.CounterClockwise_Positive
-        )
-        # self._left_follower.sim_state.Orientation = (
-        #     ChassisReference.CounterClockwise_Positive
-        # )
-
-    def __configure_right_side_drive(self) -> None:
+        self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
+        # self._left_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
         # Applying a new configuration will erase all other config settings since we start with a blank config
         # so each setting needs to be explicitly set here in the config method
         config = TalonFXConfiguration()
@@ -70,22 +43,71 @@ class DriveTrain(Subsystem):
         # PID controls will use integrated encoder
         config.feedback.feedback_sensor_source = FeedbackSensorSourceValue.ROTOR_SENSOR
 
+        config.feedback.sensor_to_mechanism_ratio = constants.DT_GEAR_RATIO
+        # Apply the configuration to the motors
+        self._left_leader.configurator.apply(config)
+        # self._left_follower.configurator.apply(config)
+
+        # self._left_follower.set_control(Follower(self._left_leader.device_id, False))
+        self._left_leader.sim_state.Orientation = ChassisReference.Clockwise_Positive
+        # self._left_follower.sim_state.Orientation = (
+        #     ChassisReference.Clockwise_Positive
+        # )
+
+    def __configure_right_side_drive(self) -> None:
+        self._right_leader = TalonFX(constants.DT_RIGHT_LEADER)
+        # self._right_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
+        # Applying a new configuration will erase all other config settings since we start with a blank config
+        # so each setting needs to be explicitly set here in the config method
+        config = TalonFXConfiguration()
+
+        # Set the left side motors to be counter clockwise positive
+        config.motor_output.inverted = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
+        # Set the motors to electrically stop instead of coast
+        config.motor_output.neutral_mode = NeutralModeValue.BRAKE
+        # PID controls will use integrated encoder
+        config.feedback.feedback_sensor_source = FeedbackSensorSourceValue.ROTOR_SENSOR
+
+        config.feedback.sensor_to_mechanism_ratio = constants.DT_GEAR_RATIO
         # Apply the configuration to the motors
         self._right_leader.configurator.apply(config)
         # self._right_follower.configurator.apply(config)
 
         # self._right_follower.set_control(Follower(self._right_leader.device_id, False))
-        self._right_leader.sim_state.Orientation = ChassisReference.Clockwise_Positive
-        # self._right_follower.sim_state.Orientation = ChassisReference.Clockwise_Positive
+        self._right_leader.sim_state.Orientation = (
+            ChassisReference.CounterClockwise_Positive
+        )
+        # self._right_follower.sim_state.Orientation = ChassisReference.CounterClockwise_Positive
 
-    def drive_manually(self, turn: float, forward: float) -> None:
-        # self._left_volts_out.output = (forward + turn) * 12.0
-        # self._right_volts_out.output = (forward - turn) * 12.0
+    def drive_manually(self, forward: float, turn: float) -> None:
+        turn = self.__deadband(turn, 0.05)
+        forward = self.__deadband(forward, 0.05)
 
-        # self._left_leader.set_control(self._left_volts_out)
-        # self._right_leader.set_control(self._right_volts_out)
-        self._left_percent_out.output = forward + turn
-        self._right_percent_out.output = forward - turn
+        speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
-        self._left_leader.set_control(self._left_percent_out)
-        self._right_leader.set_control(self._right_percent_out)
+        self._left_volts_out.output = speeds.left * 12.0
+        self._right_volts_out.output = speeds.right * 12.0
+
+        self._left_leader.set_control(self._left_volts_out)
+        self._right_leader.set_control(self._right_volts_out)
+
+    def __deadband(self, input: float, abs_min: float) -> float:
+        """ """
+        if abs_min < 0:
+            abs_min *= -1
+
+        if input < 0 and input > abs_min * -1:
+            input = 0
+
+        if input > 0 and input < abs_min:
+            input = 0
+
+        return input
+
+    def periodic(self) -> None:
+        wpilib.SmartDashboard.putNumber(
+            "LeftEncoder", self._left_leader.get_position().value
+        )
+        wpilib.SmartDashboard.putNumber(
+            "RightEncoder", self._right_leader.get_position().value
+        )

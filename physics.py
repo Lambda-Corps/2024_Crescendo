@@ -120,16 +120,16 @@ class PhysicsEngine:
         # transform = self.drivetrain.calculate(speeds[self.LEFT_SPEED_INDEX], speeds[self.RIGHT_SPEED_INDEX], tm_diff)
         # pose = self.physics_controller.move_robot(transform)
         self._l_lead_motor.set_raw_rotor_position(
-            self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
+            -self.__feet_to_encoder_rotations(self._drivesim.getLeftPositionFeet())
         )
         self._l_lead_motor.set_rotor_velocity(
-            self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
+            -self.__velocity_feet_to_rps(self._drivesim.getLeftVelocityFps())
         )
         self._r_lead_motor.set_raw_rotor_position(
-            self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
+            self.__feet_to_encoder_rotations(self._drivesim.getRightPositionFeet())
         )
         self._r_lead_motor.set_rotor_velocity(
-            self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
+            self.__velocity_feet_to_rps(self._drivesim.getRightVelocityFps())
         )
         # self._l_follow_motor.set_raw_rotor_position(
         #     self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
@@ -153,18 +153,28 @@ class PhysicsEngine:
 
         self.physics_controller.field.setRobotPose(pose)
 
-    def __feet_to_encoder_ticks(self, distance_in_feet: float) -> int:
-        return int((distance_in_feet * 12) * constants.DT_TICKS_PER_INCH)
+    def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
+        #                    feet * 12
+        # rotations = ---------------------  * gear ratio
+        #             2pi * wheel_diameter
+        wheel_rotations = (distance_in_feet * 12) / (
+            (2 * math.pi) * constants.DT_WHEEL_DIAMETER
+        )
+        motor_rotations = wheel_rotations * constants.DT_GEAR_RATIO
+        return motor_rotations
 
-    def __velocity_feet_to_talon_ticks(self, velocity_in_feet: float) -> int:
+    def __velocity_feet_to_rps(self, velocity_in_feet: float) -> float:
+        #             velocity * 12
+        # rps = -------------------------- * gear ratio
+        #          2pi * wheel diameter
         wheel_rotations_per_second = (velocity_in_feet * 12) / (
             2 * math.pi * constants.DT_WHEEL_DIAMETER
         )
-        wheel_rotations_per_100ms = (
+        motor_rotations_per_second = (
             wheel_rotations_per_second * constants.DT_GEAR_RATIO
-        ) / 10
-        motor_rotations_per_100ms = wheel_rotations_per_100ms * constants.DT_GEAR_RATIO
-        return int(motor_rotations_per_100ms * constants.DT_TICKS_PER_MOTOR_REV)
+        )
+
+        return motor_rotations_per_second
 
     def __meters_to_encoder_ticks(self, distance_in_meters: float) -> int:
         return int((distance_in_meters * constants.DT_TICKS_PER_METER))

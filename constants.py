@@ -38,3 +38,9 @@ DT_RIGHT_FOLLOWER = 4  # 4
 
 # Default Robot loop period
 ROBOT_PERIOD_MS = 0.020  # 50Hz, or 20 times a second
+
+# Controller Mapping information
+CONTROLLER_FORWARD_REAL = 1
+CONTROLLER_FORWARD_SIM = 0
+CONTROLLER_TURN_REAL = 4
+CONTROLLER_TURN_SIM = 1

@@ -11,9 +11,7 @@ from commands2 import (
 from commands2.button import CommandXboxController
 import navx
 import drivetrain
-from shooter_test import ShooterTest
-from shooter_command import ShooterTestCommand
-
+import constants
 from typing import Tuple, List
 
 
@@ -34,41 +32,42 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller = CommandXboxController(0)
 
         # Instantiate any subystems
-        self._shooter = ShooterTest()
-
-        self._driver_controller.a().whileTrue(ShooterTestCommand(self._shooter))
         self._drivetrain = drivetrain.DriveTrain()
 
-        # # Setup the default commands for subsystems
-        self._drivetrain.setDefaultCommand(
-            # A split-stick arcade command, with forward/backward controlled by the left
-            # hand, and turning controlled by the right.
-            RunCommand(
-                lambda: self._drivetrain.drive_manually(
-                    -self._driver_controller.getRawAxis(1),
-                    self._driver_controller.getRawAxis(0),
-                ),
-                self._drivetrain,
+        # Setup the default commands for subsystems
+        if wpilib.RobotBase.isSimulation():
+            # Set the Drivetrain to arcade drive by default
+            self._drivetrain.setDefaultCommand(
+                # A split-stick arcade command, with forward/backward controlled by the left
+                # hand, and turning controlled by the right.
+                RunCommand(
+                    lambda: self._drivetrain.drive_manually(
+                        -self._driver_controller.getRawAxis(
+                            constants.CONTROLLER_FORWARD_SIM
+                        ),
+                        -self._driver_controller.getRawAxis(
+                            constants.CONTROLLER_TURN_SIM
+                        ),
+                    ),
+                    self._drivetrain,
+                )
             )
-        )
-
-        wpilib.SmartDashboard.putData("Shooter", self._shooter)
-        wpilib.SmartDashboard.putData("DriveTrain", self._drivetrain)
-
-        # # # Drive forward at half speed for three seconds
-        # self._driver_controller.a().onTrue(
-        #     cmd.run(
-        #         lambda: self._drivetrain.drive_manually(0.2, 0),
-        #         self._drivetrain,
-        #     ).withTimeout(3)
-        # )
-        # # # Drive backward at half speed for three seconds
-        # self._driver_controller.b().onTrue(
-        #     cmd.run(
-        #         lambda: self._drivetrain.drive_manually(-0.2, 0),
-        #         self._drivetrain,
-        #     ).withTimeout(3)
-        # )
+        else:
+            self._drivetrain.setDefaultCommand(
+                # A split-stick arcade command, with forward/backward controlled by the left
+                # hand, and turning controlled by the right.
+                RunCommand(
+                    lambda: self._drivetrain.drive_manually(
+                        -self._driver_controller.getRawAxis(
+                            constants.CONTROLLER_FORWARD_REAL
+                        ),
+                        self._driver_controller.getRawAxis(
+                            constants.CONTROLLER_TURN_REAL
+                        ),
+                    ),
+                    self._drivetrain,
+                )
+            )
 
         self._auto_command = None
 
