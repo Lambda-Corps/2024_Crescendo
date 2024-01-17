@@ -158,7 +158,7 @@ class PhysicsEngine:
         # rotations = ---------------------  * gear ratio
         #             2pi * wheel_diameter
         wheel_rotations = (distance_in_feet * 12) / (
-            (2 * math.pi) * constants.DT_WHEEL_DIAMETER
+            math.pi * constants.DT_WHEEL_DIAMETER
         )
         motor_rotations = wheel_rotations * constants.DT_GEAR_RATIO
         return motor_rotations
@@ -168,7 +168,7 @@ class PhysicsEngine:
         # rps = -------------------------- * gear ratio
         #          2pi * wheel diameter
         wheel_rotations_per_second = (velocity_in_feet * 12) / (
-            2 * math.pi * constants.DT_WHEEL_DIAMETER
+            math.pi * constants.DT_WHEEL_DIAMETER
         )
         motor_rotations_per_second = (
             wheel_rotations_per_second * constants.DT_GEAR_RATIO

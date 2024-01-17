@@ -6,6 +6,7 @@ from commands2 import (
     Command,
     PrintCommand,
     RunCommand,
+    InstantCommand,
     cmd,
 )
 from commands2.button import CommandXboxController
@@ -13,6 +14,8 @@ import navx
 import drivetrain
 import constants
 from typing import Tuple, List
+
+from drivetrain_commands import DriveMMInches
 
 
 class MyRobot(TimedCommandRobot):
@@ -32,7 +35,8 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller = CommandXboxController(0)
 
         # Instantiate any subystems
-        self._drivetrain = drivetrain.DriveTrain()
+        self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
+        wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
@@ -41,7 +45,7 @@ class MyRobot(TimedCommandRobot):
                 # A split-stick arcade command, with forward/backward controlled by the left
                 # hand, and turning controlled by the right.
                 RunCommand(
-                    lambda: self._drivetrain.drive_manually(
+                    lambda: self._drivetrain.drive_teleop(
                         -self._driver_controller.getRawAxis(
                             constants.CONTROLLER_FORWARD_SIM
                         ),
@@ -57,7 +61,7 @@ class MyRobot(TimedCommandRobot):
                 # A split-stick arcade command, with forward/backward controlled by the left
                 # hand, and turning controlled by the right.
                 RunCommand(
-                    lambda: self._drivetrain.drive_manually(
+                    lambda: self._drivetrain.drive_teleop(
                         -self._driver_controller.getRawAxis(
                             constants.CONTROLLER_FORWARD_REAL
                         ),
@@ -69,7 +73,11 @@ class MyRobot(TimedCommandRobot):
                 )
             )
 
+        self.__configure_button_bindings()
         self._auto_command = None
+
+    def __configure_button_bindings(self) -> None:
+        self._driver_controller.a().onTrue(DriveMMInches(self._drivetrain, 120))
 
     def getAutonomousCommand(self) -> Command:
         return PrintCommand("Default auto selected")
