@@ -82,10 +82,10 @@ class DriveTrain(Subsystem):
 
     def __create_turn_pid_objects(self) -> None:
         self._turn_setpoint = 0
-        self._turn_tolerance = 3  # within 3 degrees we'll call good enough
+        self._turn_tolerance = 0.5  # within 3 degrees we'll call good enough
         if RobotBase.isSimulation():
-            self._turn_pid_controller: PIDController = PIDController(0.002, 0.0, 0.0)
-            self._turn_kF = 0.0015
+            self._turn_pid_controller: PIDController = PIDController(0.00175, 0.0, 0.0)
+            self._turn_kF = 0.049
         else:
             # These must be tuned
             self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
