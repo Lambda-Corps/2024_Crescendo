@@ -11,6 +11,7 @@ from commands2 import (
 )
 from commands2.button import CommandXboxController
 import drivetrain
+import shooter_test
 import constants
 from typing import Tuple, List
 
@@ -32,6 +33,8 @@ class MyRobot(TimedCommandRobot):
         # Instantiate any subystems
         self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
+        self._shooter: shooter_test.ShooterTest = shooter_test.ShooterTest()
+        wpilib.SmartDashboard.putData("Shooter", self._shooter)
 
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
@@ -52,38 +55,43 @@ class MyRobot(TimedCommandRobot):
                 ).withName("DefaultDrive")
             )
         else:
-            self._drivetrain.setDefaultCommand(
-                # A split-stick arcade command, with forward/backward controlled by the left
-                # hand, and turning controlled by the right.
-                RunCommand(
-                    lambda: self._drivetrain.drive_teleop(
-                        -self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_FORWARD_REAL
-                        ),
-                        self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_TURN_REAL
-                        ),
-                    ),
-                    self._drivetrain,
-                ).withName("DefaultDrive")
-            )
+            # self._drivetrain.setDefaultCommand(
+            #     # A split-stick arcade command, with forward/backward controlled by the left
+            #     # hand, and turning controlled by the right.
+            #     RunCommand(
+            #         lambda: self._drivetrain.drive_teleop(
+            #             -self._driver_controller.getRawAxis(
+            #                 constants.CONTROLLER_FORWARD_REAL
+            #             ),
+            #             self._driver_controller.getRawAxis(
+            #                 constants.CONTROLLER_TURN_REAL
+            #             ),
+            #         ),
+            #         self._drivetrain,
+            #     ).withName("DefaultDrive")
+            # )
+            pass
 
         self.__configure_button_bindings()
         self._auto_command = None
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(
-            drivetrain.DriveMMInches(self._drivetrain, 120)
-        )
-        self._driver_controller.x().onTrue(
-            self._drivetrain.configure_turn_pid(90)
-            .andThen(self._drivetrain.turn_with_pid())
-            .withName("Turn 90")
-        )
-        self._driver_controller.b().onTrue(
-            self._drivetrain.mm_drive_config(45)
-            .andThen(self._drivetrain.mm_drive_distance())
-            .withName("Drive 45")
+        # self._driver_controller.a().onTrue(
+        #     drivetrain.DriveMMInches(self._drivetrain, 120)
+        # )
+        # self._driver_controller.x().onTrue(
+        #     self._drivetrain.configure_turn_pid(90)
+        #     .andThen(self._drivetrain.turn_with_pid())
+        #     .withName("Turn 90")
+        # )
+        # self._driver_controller.b().onTrue(
+        #     self._drivetrain.mm_drive_config(45)
+        #     .andThen(self._drivetrain.mm_drive_distance())
+        #     .withName("Drive 45")
+        # )
+
+        self._driver_controller.y().whileTrue(
+            shooter_test.ShooterTestCommand(self._shooter)
         )
 
     def getAutonomousCommand(self) -> Command:
