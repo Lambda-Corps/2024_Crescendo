@@ -2,7 +2,7 @@ import math
 
 import wpilib.drive
 from wpilib import RobotBase
-from commands2 import Subsystem, Command, cmd
+from commands2 import Subsystem, Command, cmd, InstantCommand
 from phoenix6.configs import (
     TalonFXConfiguration,
     TalonFXConfigurator,
@@ -42,8 +42,7 @@ class DriveTrain(Subsystem):
         self.__configure_right_side_drive()
 
     def __configure_motion_magic(self, config: TalonFXConfiguration) -> None:
-        self._mm_setpoint_left = 0
-        self._mm_setpoint_right = 0
+        self._mm_setpoint = 0
 
         self._mm_tolerance = (
             math.pi * constants.DT_WHEEL_DIAMETER
@@ -63,6 +62,7 @@ class DriveTrain(Subsystem):
         else:
             # TODO -- Tune these on the robot
             slot_0.k_p = 12  # 1 full wheel rotation will correct with 12 volts
+            slot_0.k_s = 0
 
     def __create_output_objects(self) -> None:
         self._left_volts_out: VoltageOut = VoltageOut(0, enable_foc=False)
@@ -73,8 +73,7 @@ class DriveTrain(Subsystem):
         self._left_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
         self._right_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
 
-        self._left_mm_out: MotionMagicVoltage = MotionMagicVoltage(0, enable_foc=False)
-        self._right_mm_out: MotionMagicVoltage = MotionMagicVoltage(0, enable_foc=False)
+        self._mm_out: MotionMagicVoltage = MotionMagicVoltage(0, enable_foc=False)
 
     def __configure_left_side_drive(self) -> None:
         self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
@@ -190,21 +189,41 @@ class DriveTrain(Subsystem):
         #                          distance_in_inches
         # wheel_rotations =   --------------------------
         #                        Pi * Wheel Diameter
-        wheel_rotations = distance_in_inches / (math.pi * constants.DT_WHEEL_DIAMETER)
+        distance_in_rotations = distance_in_inches / (
+            math.pi * constants.DT_WHEEL_DIAMETER
+        )
+        curr_right = self._right_leader.get_position().value_as_double
 
-        # Get the current left and right encoder values
-        right_enc = self._right_leader.get_position().value
-
-        self._mm_setpoint_right = right_enc + wheel_rotations
-
-        self._left_leader.set_control(Follower(self._right_leader.device_id, False))
+        self._mm_out.with_position(curr_right + distance_in_rotations).with_slot(0)
 
     def drive_motion_magic(self) -> None:
-        self._right_leader.set_control(
-            self._right_mm_out.with_position(self._mm_setpoint_right).with_slot(0)
-        )
+        self._left_leader.set_control(Follower(self._right_leader.device_id, False))
+        self._right_leader.set_control(self._mm_out)
 
     def at_mm_setpoint(self) -> bool:
         curr_right = self._right_leader.get_position().value
 
-        return abs(self._right_mm_out.position - curr_right) < self._mm_tolerance
+        return abs(self._mm_out.position - curr_right) < self._mm_tolerance
+
+
+class DriveMMInches(Command):
+    def __init__(self, dt: DriveTrain, distance_in_inches: float) -> None:
+        super().__init__()
+
+        self._dt = dt
+        self._desired_distance = distance_in_inches
+
+        # Tell the scheduler this requires the drivetrain
+        self.addRequirements(self._dt)
+
+    def initialize(self):
+        self._dt.configure_motion_magic(self._desired_distance)
+
+    def execute(self):
+        self._dt.drive_motion_magic()
+
+    def isFinished(self) -> bool:
+        return self._dt.at_mm_setpoint()
+
+    def end(self, interrupted: bool):
+        self._dt.drive_volts(0, 0)

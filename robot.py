@@ -15,8 +15,6 @@ import drivetrain
 import constants
 from typing import Tuple, List
 
-from drivetrain_commands import DriveMMInches
-
 
 class MyRobot(TimedCommandRobot):
     """Class that defines the totality of our Robot"""
@@ -54,7 +52,7 @@ class MyRobot(TimedCommandRobot):
                         ),
                     ),
                     self._drivetrain,
-                )
+                ).withName("DefaultDrive")
             )
         else:
             self._drivetrain.setDefaultCommand(
@@ -70,14 +68,19 @@ class MyRobot(TimedCommandRobot):
                         ),
                     ),
                     self._drivetrain,
-                )
+                ).withName("DefaultDrive")
             )
 
         self.__configure_button_bindings()
         self._auto_command = None
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(DriveMMInches(self._drivetrain, 120))
+        self._driver_controller.a().onTrue(
+            drivetrain.DriveMMInches(self._drivetrain, 120)
+        )
+        self._driver_controller.b().onTrue(
+            drivetrain.DriveMMInches(self._drivetrain, -30)
+        )
 
     def getAutonomousCommand(self) -> Command:
         return PrintCommand("Default auto selected")
