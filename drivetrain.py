@@ -2,6 +2,7 @@ import math
 
 import wpilib.drive
 from wpilib import RobotBase
+from wpimath.controller import PIDController
 from commands2 import Subsystem, Command, cmd, InstantCommand
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -22,9 +23,9 @@ from phoenix6.sim import ChassisReference
 from phoenix6.controls import (
     DutyCycleOut,
     VoltageOut,
-    MotionMagicDutyCycle,
     MotionMagicVoltage,
 )
+import navx
 
 import constants
 
@@ -32,10 +33,14 @@ import constants
 class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
+        self._gyro = navx.AHRS.create_spi()
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
         self.__create_output_objects()
+
+        # Create the PID controller setup for turning
+        self.__create_turn_pid_objects()
 
         # Apply all the configurations to the left and right side Talons
         self.__configure_left_side_drive()
@@ -74,6 +79,17 @@ class DriveTrain(Subsystem):
         self._right_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
 
         self._mm_out: MotionMagicVoltage = MotionMagicVoltage(0, enable_foc=False)
+
+    def __create_turn_pid_objects(self) -> None:
+        self._turn_setpoint = 0
+        self._turn_tolerance = 3  # within 3 degrees we'll call good enough
+        if RobotBase.isSimulation():
+            self._turn_pid_controller: PIDController = PIDController(0.002, 0.0, 0.0)
+            self._turn_kF = 0.0015
+        else:
+            # These must be tuned
+            self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
+            self._turn_kF = 0.1  # TODO Tune me
 
     def __configure_left_side_drive(self) -> None:
         self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
@@ -204,6 +220,60 @@ class DriveTrain(Subsystem):
         curr_right = self._right_leader.get_position().value
 
         return abs(self._mm_out.position - curr_right) < self._mm_tolerance
+
+    def mm_drive_distance(self) -> Command:
+        return (
+            cmd.run(lambda: self.drive_motion_magic(), self)
+            .until(lambda: self.at_mm_setpoint())
+            .withName("DriveMM")
+        )
+
+    def mm_drive_config(self, distance_in_inches: float) -> Command:
+        return cmd.runOnce(lambda: self.configure_motion_magic(distance_in_inches))
+
+    def configure_turn_pid(self, desired_angle: float) -> Command:
+        return cmd.runOnce(lambda: self.__config_turn_command(desired_angle))
+
+    def turn_with_pid(self) -> Command:
+        return (
+            cmd.run(lambda: self.__turn_with_pid(), self)
+            .until(lambda: self.__at_turn_setpoint())
+            .withName("TurnWithPID")
+        )
+
+    def __config_turn_command(self, desired_angle: float) -> None:
+        self._turn_setpoint = desired_angle + self._gyro.getYaw()
+        self._turn_pid_controller.setSetpoint(self._turn_setpoint)
+        self._turn_pid_controller.setTolerance(self._turn_tolerance)
+        wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
+
+    def __turn_with_pid(self) -> None:
+        curr_angle = self._gyro.getYaw()
+        wpilib.SmartDashboard.putNumber("Yaw", curr_angle)
+
+        pidoutput = self._turn_pid_controller.calculate(curr_angle)
+
+        # Promote the value to at least the KF
+        if (pidoutput < 0) and (pidoutput > -self._turn_kF):
+            pidoutput = -self._turn_kF
+        elif (pidoutput > 0) and (pidoutput < self._turn_kF):
+            pidoutput = self._turn_kF
+
+        wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
+
+        if RobotBase.isSimulation():
+            self.drive_teleop(pidoutput, 0)
+        else:
+            self.drive_teleop(0, pidoutput)
+
+    def __at_turn_setpoint(self) -> bool:
+        curr_angle = self._gyro.getYaw()
+
+        wpilib.SmartDashboard.putBoolean(
+            "At Setpoint", self._turn_pid_controller.atSetpoint()
+        )
+
+        return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
 
 
 class DriveMMInches(Command):

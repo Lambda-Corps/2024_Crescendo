@@ -55,7 +55,7 @@ class PhysicsEngine:
         self.position = 0
 
         # Change these parameters to fit your robot!
-        bumper_width = 3.25 * units.inch
+        bumper_width = 3.25
         # fmt: off
         self._system = LinearSystemId.identifyDrivetrainSystem(1.98, .2, 1.5, .3)
         self._drivesim = wpilib.simulation.DifferentialDrivetrainSim(
@@ -148,7 +148,7 @@ class PhysicsEngine:
         # -> FRC gyros are positive clockwise, but the returned pose is positive
         #    counter-clockwise
         pose = self._drivesim.getPose()
-        self.navx_yaw.set(-self._drivesim.getHeading().degrees())
+        self.navx_yaw.set(self._drivesim.getHeading().degrees())
         # self.navx_yaw.set(-pose.rotation().degrees())
 
         self.physics_controller.field.setRobotPose(pose)

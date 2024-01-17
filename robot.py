@@ -10,7 +10,6 @@ from commands2 import (
     cmd,
 )
 from commands2.button import CommandXboxController
-import navx
 import drivetrain
 import constants
 from typing import Tuple, List
@@ -27,8 +26,6 @@ class MyRobot(TimedCommandRobot):
         button bindings, and operator interface pieces like driver
         dashboards
         """
-        self._gyro = navx.AHRS.create_spi()
-
         # Setup the operator interface (typically CommandXboxController)
         self._driver_controller = CommandXboxController(0)
 
@@ -78,8 +75,15 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.a().onTrue(
             drivetrain.DriveMMInches(self._drivetrain, 120)
         )
+        self._driver_controller.x().onTrue(
+            self._drivetrain.configure_turn_pid(90)
+            .andThen(self._drivetrain.turn_with_pid())
+            .withName("Turn 90")
+        )
         self._driver_controller.b().onTrue(
-            drivetrain.DriveMMInches(self._drivetrain, -30)
+            self._drivetrain.mm_drive_config(45)
+            .andThen(self._drivetrain.mm_drive_distance())
+            .withName("Drive 45")
         )
 
     def getAutonomousCommand(self) -> Command:
