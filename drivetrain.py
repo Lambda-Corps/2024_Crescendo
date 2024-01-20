@@ -3,6 +3,13 @@ import math
 import wpilib.drive
 from wpilib import RobotBase
 from wpimath.controller import PIDController
+from wpimath.geometry import Pose2d
+from wpimath.kinematics import (
+    DifferentialDriveOdometry,
+    DifferentialDriveKinematics,
+    ChassisSpeeds,
+    DifferentialDriveWheelSpeeds,
+)
 from commands2 import Subsystem, Command, cmd, InstantCommand
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -45,6 +52,15 @@ class DriveTrain(Subsystem):
         # Apply all the configurations to the left and right side Talons
         self.__configure_left_side_drive()
         self.__configure_right_side_drive()
+
+        # Create the Odometry tracker
+        self._odometry: DifferentialDriveOdometry = DifferentialDriveOdometry(
+            self._gyro.getRotation2d(), 0, 0
+        )
+
+        self._kinematics: DifferentialDriveKinematics = DifferentialDriveKinematics(
+            constants.DT_TRACKWIDTH_METERS
+        )
 
     def __configure_motion_magic(self, config: TalonFXConfiguration) -> None:
         self._mm_setpoint = 0
@@ -167,6 +183,10 @@ class DriveTrain(Subsystem):
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
+    def driveSpeeds(self, speeds: ChassisSpeeds) -> None:
+        speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
+        self.drive_volts(speeds.left, speeds.right)
+
     def __deadband(self, input: float, abs_min: float) -> float:
         """ """
         if abs_min < 0:
@@ -274,6 +294,22 @@ class DriveTrain(Subsystem):
         )
 
         return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
+
+    def get_robot_pose(self) -> Pose2d:
+        return self._odometry.getPose()
+
+    def get_wheel_speeds(self) -> ChassisSpeeds:
+        diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
+            self.__rps_to_mps(self._left_leader.get_velocity().value_as_double),
+            self.__rps_to_mps(self._right_leader.get_velocity().value_as_double),
+        )
+        return self._kinematics.toChassisSpeeds(diff_speed)
+
+    def __rps_to_mps(self, rotations: float) -> float:
+        return rotations * (math.pi * constants.DT_WHEEL_DIAMETER)
+
+    def reset_odometry(self, pose: Pose2d) -> None:
+        self._odometry.resetPosition(self._gyro.getRotation2d(), 0, 0, pose)
 
 
 class DriveMMInches(Command):

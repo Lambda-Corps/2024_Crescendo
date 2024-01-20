@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import math
 import wpilib
+from wpilib import DriverStation
 from commands2 import (
     TimedCommandRobot,
     CommandScheduler,
@@ -10,6 +12,13 @@ from commands2 import (
     cmd,
 )
 from commands2.button import CommandXboxController
+from wpimath.geometry import Pose2d
+from pathplannerlib.auto import (
+    NamedCommands,
+    PathPlannerAuto,
+    AutoBuilder,
+    ReplanningConfig,
+)
 import drivetrain
 import constants
 from typing import Tuple, List
@@ -33,6 +42,30 @@ class MyRobot(TimedCommandRobot):
         self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
+        self.__configure_default_commands()
+
+        self.__configure_button_bindings()
+
+        self.__configure_autonomous_commands()
+
+        self._auto_command = None
+
+    def __configure_button_bindings(self) -> None:
+        self._driver_controller.a().onTrue(
+            drivetrain.DriveMMInches(self._drivetrain, 120)
+        )
+        self._driver_controller.x().onTrue(
+            self._drivetrain.configure_turn_pid(90)
+            .andThen(self._drivetrain.turn_with_pid())
+            .withName("Turn 90")
+        )
+        self._driver_controller.b().onTrue(
+            self._drivetrain.mm_drive_config(45)
+            .andThen(self._drivetrain.mm_drive_distance())
+            .withName("Drive 45")
+        )
+
+    def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
             # Set the Drivetrain to arcade drive by default
@@ -68,26 +101,32 @@ class MyRobot(TimedCommandRobot):
                 ).withName("DefaultDrive")
             )
 
-        self.__configure_button_bindings()
-        self._auto_command = None
+    def __configure_autonomous_commands(self) -> None:
+        # Register the named commands used by the PathPlanner auto builder
+        # ShootSub
+        # DeployIntake
+        # FeedShooter
+        NamedCommands.registerCommand(
+            "ShootSub", PrintCommand("Shoot Note into Speaker")
+        )
+        NamedCommands.registerCommand("DeployIntake", PrintCommand("DeployIntake"))
+        NamedCommands.registerCommand(
+            "FeedShooter", PrintCommand("Move Note into SHooter")
+        )
 
-    def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(
-            drivetrain.DriveMMInches(self._drivetrain, 120)
-        )
-        self._driver_controller.x().onTrue(
-            self._drivetrain.configure_turn_pid(90)
-            .andThen(self._drivetrain.turn_with_pid())
-            .withName("Turn 90")
-        )
-        self._driver_controller.b().onTrue(
-            self._drivetrain.mm_drive_config(45)
-            .andThen(self._drivetrain.mm_drive_distance())
-            .withName("Drive 45")
+        # Configure the builder with an Ramsete trajectory follower
+        AutoBuilder.configureRamsete(
+            self._drivetrain.get_robot_pose,  # Robot pose supplier
+            self._drivetrain.reset_odometry,  # Method to reset odometry (will be called if your auto has a starting pose)
+            self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
+            self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
+            ReplanningConfig(),  # Default path replanning config. See the API for the options here
+            self.should_flip_path,  # Flip if we're on the red side
+            self._drivetrain,  # Reference to this subsystem to set requirements
         )
 
     def getAutonomousCommand(self) -> Command:
-        return PrintCommand("Default auto selected")
+        return PathPlannerAuto("TwoRingSub2")
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:
@@ -113,3 +152,12 @@ class MyRobot(TimedCommandRobot):
 
     def teleopPeriodic(self) -> None:
         return super().teleopPeriodic()
+
+    def get_starting_pose(self) -> Pose2d:
+        return Pose2d(1.34, 5.55, math.pi)
+
+    def should_flip_path(self) -> bool:
+        # Boolean supplier that controls when the path will be mirrored for the red alliance
+        # This will flip the path being followed to the red side of the field.
+        # THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+        return DriverStation.getAlliance() == DriverStation.Alliance.kRed

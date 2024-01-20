@@ -18,8 +18,15 @@ tests/
 # Ignore the WPILib hidden directory contents
 .wpilib/
 
+# Ignore VS Code settings
+.vscode/
+
+# Ignore Pathplanner settings
+.pathplanner/
+
 # C extensions
 *.so
+
 
 # Distribution / packaging
 .Python

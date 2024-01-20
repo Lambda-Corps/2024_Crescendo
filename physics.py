@@ -79,6 +79,8 @@ class PhysicsEngine:
         #     robot._drivetrain._right_follower.sim_state
         # )
 
+        self._drivesim.setPose(self._robot_instance.get_starting_pose())
+
     def update_sim(self, now: float, tm_diff: float) -> None:
         """
         Called when the simulation parameters for the program need to be
@@ -149,7 +151,6 @@ class PhysicsEngine:
         #    counter-clockwise
         pose = self._drivesim.getPose()
         self.navx_yaw.set(self._drivesim.getHeading().degrees())
-        # self.navx_yaw.set(-pose.rotation().degrees())
 
         self.physics_controller.field.setRobotPose(pose)
 
@@ -175,16 +176,3 @@ class PhysicsEngine:
         )
 
         return motor_rotations_per_second
-
-    def __meters_to_encoder_ticks(self, distance_in_meters: float) -> int:
-        return int((distance_in_meters * constants.DT_TICKS_PER_METER))
-
-    def __velocity_meters_to_talon_ticks(self, velocity_in_meters: float) -> int:
-        wheel_rotations_per_second = velocity_in_meters / (
-            2 * math.pi * constants.DT_WHEEL_DIAMETER
-        )
-        wheel_rotations_per_100ms = (
-            wheel_rotations_per_second * constants.DT_GEAR_RATIO
-        ) / 10
-        motor_rotations_per_100ms = wheel_rotations_per_100ms * constants.DT_GEAR_RATIO
-        return int(motor_rotations_per_100ms * constants.DT_TICKS_PER_INCH)
