@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import math
 import wpilib
-from wpilib import DriverStation
+from wpilib import RobotBase
 from commands2 import (
     TimedCommandRobot,
     CommandScheduler,
     Command,
     PrintCommand,
     RunCommand,
-    InstantCommand,
-    cmd,
 )
 from commands2.button import CommandXboxController
 from wpimath.geometry import Pose2d
@@ -49,20 +47,20 @@ class MyRobot(TimedCommandRobot):
         self.__configure_autonomous_commands()
 
         self._auto_command = None
+        self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
         self._driver_controller.a().onTrue(
-            drivetrain.DriveMMInches(self._drivetrain, 120)
-        )
-        self._driver_controller.x().onTrue(
-            self._drivetrain.configure_turn_pid(90)
-            .andThen(self._drivetrain.turn_with_pid())
-            .withName("Turn 90")
+            self._drivetrain.follow_path_command("SubRing2")
         )
         self._driver_controller.b().onTrue(
-            self._drivetrain.mm_drive_config(45)
-            .andThen(self._drivetrain.mm_drive_distance())
-            .withName("Drive 45")
+            self._drivetrain.follow_path_command("SubRing1")
+        )
+        self._driver_controller.x().onTrue(
+            self._drivetrain.follow_path_command("Ring1Sub")
+        )
+        self._driver_controller.y().onTrue(
+            self._drivetrain.follow_path_command("Ring2Sub")
         )
 
     def __configure_default_commands(self) -> None:
@@ -114,19 +112,18 @@ class MyRobot(TimedCommandRobot):
             "FeedShooter", PrintCommand("Move Note into SHooter")
         )
 
-        # Configure the builder with an Ramsete trajectory follower
         AutoBuilder.configureRamsete(
             self._drivetrain.get_robot_pose,  # Robot pose supplier
             self._drivetrain.reset_odometry,  # Method to reset odometry (will be called if your auto has a starting pose)
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
             ReplanningConfig(),  # Default path replanning config. See the API for the options here
-            self.should_flip_path,  # Flip if we're on the red side
+            self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
         )
 
     def getAutonomousCommand(self) -> Command:
-        return PathPlannerAuto("TwoRingSub2")
+        return PathPlannerAuto("Test")
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:
@@ -156,8 +153,9 @@ class MyRobot(TimedCommandRobot):
     def get_starting_pose(self) -> Pose2d:
         return Pose2d(1.34, 5.55, math.pi)
 
-    def should_flip_path(self) -> bool:
-        # Boolean supplier that controls when the path will be mirrored for the red alliance
-        # This will flip the path being followed to the red side of the field.
-        # THE ORIGIN WILL REMAIN ON THE BLUE SIDE
-        return DriverStation.getAlliance() == DriverStation.Alliance.kRed
+    def save_pose(self, pose: Pose2d) -> None:
+        if RobotBase.isSimulation():
+            self._current_pose = pose
+
+    def get_saved_pose(self) -> Pose2d:
+        return self._current_pose
