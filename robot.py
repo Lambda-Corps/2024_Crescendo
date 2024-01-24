@@ -60,7 +60,7 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.follow_path_command("Ring1Sub")
         )
         self._driver_controller.y().onTrue(
-            self._drivetrain.follow_path_command("Ring2Sub")
+            self._drivetrain.follow_path_command("TestLong")
         )
 
     def __configure_default_commands(self) -> None:
