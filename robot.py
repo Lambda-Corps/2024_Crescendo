@@ -11,6 +11,7 @@ from commands2 import (
 )
 from commands2.button import CommandXboxController
 import drivetrain
+import intake
 import constants
 from typing import Tuple, List
 
@@ -33,58 +34,62 @@ class MyRobot(TimedCommandRobot):
         self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
-        # Setup the default commands for subsystems
-        if wpilib.RobotBase.isSimulation():
-            # Set the Drivetrain to arcade drive by default
-            self._drivetrain.setDefaultCommand(
-                # A split-stick arcade command, with forward/backward controlled by the left
-                # hand, and turning controlled by the right.
-                RunCommand(
-                    lambda: self._drivetrain.drive_teleop(
-                        -self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_FORWARD_SIM
-                        ),
-                        -self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_TURN_SIM
-                        ),
-                    ),
-                    self._drivetrain,
-                ).withName("DefaultDrive")
-            )
-        else:
-            self._drivetrain.setDefaultCommand(
-                # A split-stick arcade command, with forward/backward controlled by the left
-                # hand, and turning controlled by the right.
-                RunCommand(
-                    lambda: self._drivetrain.drive_teleop(
-                        -self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_FORWARD_REAL
-                        ),
-                        self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_TURN_REAL
-                        ),
-                    ),
-                    self._drivetrain,
-                ).withName("DefaultDrive")
-            )
+        self._intake: intake.Intake = intake.Intake()
+        wpilib.SmartDashboard.putData("Intake", self._intake)
+
+        # # Setup the default commands for subsystems
+        # if wpilib.RobotBase.isSimulation():
+        #     # Set the Drivetrain to arcade drive by default
+        #     self._drivetrain.setDefaultCommand(
+        #         # A split-stick arcade command, with forward/backward controlled by the left
+        #         # hand, and turning controlled by the right.
+        #         RunCommand(
+        #             lambda: self._drivetrain.drive_teleop(
+        #                 -self._driver_controller.getRawAxis(
+        #                     constants.CONTROLLER_FORWARD_SIM
+        #                 ),
+        #                 -self._driver_controller.getRawAxis(
+        #                     constants.CONTROLLER_TURN_SIM
+        #                 ),
+        #             ),
+        #             self._drivetrain,
+        #         ).withName("DefaultDrive")
+        #     )
+        # else:
+        #     self._drivetrain.setDefaultCommand(
+        #         # A split-stick arcade command, with forward/backward controlled by the left
+        #         # hand, and turning controlled by the right.
+        #         RunCommand(
+        #             lambda: self._drivetrain.drive_teleop(
+        #                 -self._driver_controller.getRawAxis(
+        #                     constants.CONTROLLER_FORWARD_REAL
+        #                 ),
+        #                 self._driver_controller.getRawAxis(
+        #                     constants.CONTROLLER_TURN_REAL
+        #                 ),
+        #             ),
+        #             self._drivetrain,
+        #         ).withName("DefaultDrive")
+        #     )
 
         self.__configure_button_bindings()
         self._auto_command = None
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(
-            drivetrain.DriveMMInches(self._drivetrain, 120)
-        )
-        self._driver_controller.x().onTrue(
-            self._drivetrain.configure_turn_pid(90)
-            .andThen(self._drivetrain.turn_with_pid())
-            .withName("Turn 90")
-        )
-        self._driver_controller.b().onTrue(
-            self._drivetrain.mm_drive_config(45)
-            .andThen(self._drivetrain.mm_drive_distance())
-            .withName("Drive 45")
-        )
+        # self._driver_controller.a().onTrue(
+        #     drivetrain.DriveMMInches(self._drivetrain, 120)
+        # )
+        # self._driver_controller.x().onTrue(
+        #     self._drivetrain.configure_turn_pid(90)
+        #     .andThen(self._drivetrain.turn_with_pid())
+        #     .withName("Turn 90")
+        # )
+        # self._driver_controller.b().onTrue(
+        #     self._drivetrain.mm_drive_config(45)
+        #     .andThen(self._drivetrain.mm_drive_distance())
+        #     .withName("Drive 45")
+        # )
+        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
 
     def getAutonomousCommand(self) -> Command:
         return PrintCommand("Default auto selected")
