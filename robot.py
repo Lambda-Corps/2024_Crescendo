@@ -41,6 +41,9 @@ class MyRobot(TimedCommandRobot):
         self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
+        self._intake: intake.Intake = intake.Intake()
+        wpilib.SmartDashboard.putData("Intake", self._intake)
+
         self.__configure_default_commands()
 
         self.__configure_button_bindings()
@@ -51,24 +54,12 @@ class MyRobot(TimedCommandRobot):
         self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(
-            self._drivetrain.follow_path_command("SubRing2")
-        )
-        self._driver_controller.b().onTrue(
-            self._drivetrain.follow_path_command("SubRing1")
-        )
-        self._driver_controller.x().onTrue(
-            self._drivetrain.follow_path_command("Ring1Sub")
-        )
-        self._driver_controller.y().onTrue(
-            self._drivetrain.follow_path_command("TestLong")
-        )
+        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
 
     def __configure_default_commands(self) -> None:
-        self._intake: intake.Intake = intake.Intake()
-        wpilib.SmartDashboard.putData("Intake", self._intake)
+        
 
-        # # Setup the default commands for subsystems
+        # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
             # Set the Drivetrain to arcade drive by default
             self._drivetrain.setDefaultCommand(
@@ -92,17 +83,13 @@ class MyRobot(TimedCommandRobot):
                 # hand, and turning controlled by the right.
                 RunCommand(
                     lambda: self._drivetrain.drive_teleop(
-                        -self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_FORWARD_REAL
-                        ),
-                        self._driver_controller.getRawAxis(
-                            constants.CONTROLLER_TURN_REAL
-                        ),
+                        -self._driver_controller.getLeftY(),
+                        -self._driver_controller.getRightX()
                     ),
                     self._drivetrain,
                 ).withName("DefaultDrive")
             )
-
+              
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
         # ShootSub

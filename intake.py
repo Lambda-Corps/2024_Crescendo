@@ -20,7 +20,7 @@ class Intake(Subsystem):
         SmartDashboard.putNumber("IntakeSpeed", 0)
 
     def drive_motor(self, speed: float):
-        self._motor.set(speed)
+        self._motor.set(TalonSRXControlMode.PercentOutput,speed)
 
 
 class IntakeTestCommand(Command):
@@ -36,7 +36,7 @@ class IntakeTestCommand(Command):
         self.addRequirements(self._sub)
 
     def initialize(self):
-        self._speed = SmartDashboard.getNumber("IntakeSpeed", 0)
+        self._speed = SmartDashboard.getNumber("IntakeSpeed", .5)
         print(f"Shooter Test Initialize")
 
     def execute(self):
