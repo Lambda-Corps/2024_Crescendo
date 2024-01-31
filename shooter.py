@@ -1,5 +1,15 @@
 from commands2 import Subsystem, Command
 from wpilib import SmartDashboard
+from phoenix6.configs import (
+    TalonFXConfiguration,
+    TalonFXConfigurator,
+)
+from phoenix6.hardware.talon_fx import TalonFX
+from phoenix6.controls.follower import Follower
+from phoenix6.signals.spn_enums import InvertedValue, NeutralModeValue
+from phoenix6.controls import DutyCycleOut
+
+import constants
 
 
 class Shooter(Subsystem):
@@ -9,11 +19,41 @@ class Shooter(Subsystem):
 
     def __init__(self):
         super().__init__()
+        self._shooter_left: TalonFX = self.__configure_left_side()
+        self._shooter_right: TalonFX = self.__configure_right_side()
 
         SmartDashboard.putNumber("ShooterSpeed", 0)
 
+        # For now use DutyCycle, but should configure for MotionMagicVelocity
+        # later on.
+        self._motor_output = DutyCycleOut(0)
+
+    def __configure_left_side(
+        self,
+    ) -> TalonFX:
+        talon = TalonFX(constants.FLYWHEEL_LEFT)
+
+        # Perform any other configuration
+
+        return talon
+
+    def __configure_right_side(
+        self,
+    ) -> TalonFX:
+        # Motors are CCW positive, so the shooter needs the right side
+        # to spin CW in order to shoot note.  The left side is already in the
+        # correct orientation, so for our right side configuration just needs to
+        # follow, but oppose the leader and it will give us the spin we want.
+        talon = TalonFX(constants.FLYWHEEL_RIGHT)
+        talon.set_control(
+            Follower(constants.FLYWHEEL_LEFT, oppose_master_direction=True)
+        )
+
+        return talon
+
     def drive_motors(self, speed: float):
-        pass
+        self._motor_output.output = speed
+        self._shooter_left.set_control(self._motor_output)
 
 
 class ShooterTestCommand(Command):
@@ -30,7 +70,6 @@ class ShooterTestCommand(Command):
 
     def initialize(self):
         self._shootspeed = SmartDashboard.getNumber("ShooterSpeed", 0)
-        print(f"Shooter Test Initialize")
 
     def execute(self):
         self._sub.drive_motors(self._shootspeed)
@@ -39,5 +78,4 @@ class ShooterTestCommand(Command):
         return False
 
     def end(self, interrupted: bool):
-        print(f"Shooter Test End")
         self._sub.drive_motors(0)

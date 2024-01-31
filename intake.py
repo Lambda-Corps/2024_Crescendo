@@ -46,7 +46,6 @@ class IntakeTestCommand(Command):
 
     def initialize(self):
         self._speed = SmartDashboard.getNumber("IntakeSpeed", 0.3)
-        print(f"Intake Test Initialize")
 
     def execute(self):
         self._sub.drive_index(self._speed)
@@ -55,5 +54,4 @@ class IntakeTestCommand(Command):
         return False
 
     def end(self, interrupted: bool):
-        print(f"Intake Test End")
         self._sub.drive_index(0)
