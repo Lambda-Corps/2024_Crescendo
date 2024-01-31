@@ -1,5 +1,4 @@
 from commands2 import Subsystem, Command
-from phoenix5 import TalonSRX, TalonSRXControlMode
 from wpilib import SmartDashboard
 
 
@@ -11,18 +10,9 @@ class Shooter(Subsystem):
     def __init__(self):
         super().__init__()
 
-        # self._leftwheel = TalonSRX(8)
-        # self._rightwheel = TalonSRX(9)
+        SmartDashboard.putNumber("ShooterSpeed", 0)
 
-        # self._leftwheel.configFactoryDefault()
-        # self._rightwheel.configFactoryDefault()
-
-        SmartDashboard.putNumber("Left Wheel", 0)
-        SmartDashboard.putNumber("Right Wheel", 0)
-
-    def drive_motors(self, left: float, right: float):
-        # self._leftwheel.set(TalonSRXControlMode.PercentOutput, left)
-        # self._rightwheel.set(TalonSRXControlMode.PercentOutput, right)
+    def drive_motors(self, speed: float):
         pass
 
 
@@ -33,23 +23,21 @@ class ShooterTestCommand(Command):
 
     def __init__(self, shooter: Shooter):
         super().__init__()
-        self._leftspeed = 0
-        self._rightspeed = 0
+        self._shootspeed = 0
         self._sub = shooter
 
         self.addRequirements(self._sub)
 
     def initialize(self):
-        self._leftspeed = SmartDashboard.getNumber("Left Wheel", 0)
-        self._rightspeed = SmartDashboard.getNumber("Right Wheel", 0)
+        self._shootspeed = SmartDashboard.getNumber("ShooterSpeed", 0)
         print(f"Shooter Test Initialize")
 
     def execute(self):
-        self._sub.drive_motors(self._leftspeed, self._rightspeed)
+        self._sub.drive_motors(self._shootspeed)
 
     def isFinished(self) -> bool:
         return False
 
     def end(self, interrupted: bool):
         print(f"Shooter Test End")
-        self._sub.drive_motors(0, 0)
+        self._sub.drive_motors(0)

@@ -22,22 +22,14 @@ class Intake(Subsystem):
         self._indexleft.setInverted(True)
         self._indexright = TalonSRX(constants.INDEX_RIGHT)
         self._indexright.configFactoryDefault()
-        
 
+        SmartDashboard.putNumber("IntakeSpeed", 0.3)
 
-
-        
-
-        SmartDashboard.putNumber("IntakeSpeed", 0)
-
-    
-        
-    
     def drive_index(self, speed: float):
-         self._indexleft.set(TalonSRXControlMode.PercentOutput,speed)
-         self._indexright.set(TalonSRXControlMode.PercentOutput,speed)
-         self._indexroller.set(TalonSRXControlMode.PercentOutput,speed)
-         self._intakeroller.set(TalonSRXControlMode.PercentOutput,speed)
+        self._indexleft.set(TalonSRXControlMode.PercentOutput, speed)
+        self._indexright.set(TalonSRXControlMode.PercentOutput, speed)
+        self._indexroller.set(TalonSRXControlMode.PercentOutput, speed)
+        self._intakeroller.set(TalonSRXControlMode.PercentOutput, speed)
 
 
 class IntakeTestCommand(Command):
@@ -53,16 +45,15 @@ class IntakeTestCommand(Command):
         self.addRequirements(self._sub)
 
     def initialize(self):
-        self._speed = SmartDashboard.getNumber("IntakeSpeed", .5)
-        print(f"Shooter Test Initialize")
+        self._speed = SmartDashboard.getNumber("IntakeSpeed", 0.3)
+        print(f"Intake Test Initialize")
 
     def execute(self):
         self._sub.drive_index(self._speed)
-    
 
     def isFinished(self) -> bool:
         return False
 
     def end(self, interrupted: bool):
-        print(f"Shooter Test End")
-        self._sub.drive_motor(0)
+        print(f"Intake Test End")
+        self._sub.drive_index(0)
