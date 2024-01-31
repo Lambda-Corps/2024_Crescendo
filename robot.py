@@ -21,6 +21,7 @@ import drivetrain
 import intake
 import constants
 from typing import Tuple, List
+import shooter
 
 
 class MyRobot(TimedCommandRobot):
@@ -44,6 +45,9 @@ class MyRobot(TimedCommandRobot):
         self._intake: intake.Intake = intake.Intake()
         wpilib.SmartDashboard.putData("Intake", self._intake)
 
+        self._shooter: shooter.Shooter = shooter.Shooter()
+        wpilib.SmartDashboard.putData("Shooter", self._shooter)
+
         self.__configure_default_commands()
 
         self.__configure_button_bindings()
@@ -55,6 +59,8 @@ class MyRobot(TimedCommandRobot):
 
     def __configure_button_bindings(self) -> None:
         self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
+
+        self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
 
     def __configure_default_commands(self) -> None:
         
