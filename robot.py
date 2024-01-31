@@ -63,8 +63,6 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
 
     def __configure_default_commands(self) -> None:
-        
-
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
             # Set the Drivetrain to arcade drive by default
@@ -90,12 +88,12 @@ class MyRobot(TimedCommandRobot):
                 RunCommand(
                     lambda: self._drivetrain.drive_teleop(
                         -self._driver_controller.getLeftY(),
-                        -self._driver_controller.getRightX()
+                        -self._driver_controller.getRightX(),
                     ),
                     self._drivetrain,
                 ).withName("DefaultDrive")
             )
-              
+
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
         # ShootSub
@@ -120,7 +118,8 @@ class MyRobot(TimedCommandRobot):
         )
 
     def getAutonomousCommand(self) -> Command:
-        return PathPlannerAuto("Test")
+        # return PathPlannerAuto("Test")
+        return PathPlannerAuto("TwoRingSub2")
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:
