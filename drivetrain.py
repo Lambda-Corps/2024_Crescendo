@@ -14,6 +14,7 @@ from wpimath.kinematics import (
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.trajectory.constraint import DifferentialDriveVoltageConstraint
 from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
+from wpilib import SmartDashboard, Field2d
 from commands2 import Subsystem, Command, cmd, InstantCommand
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -48,7 +49,7 @@ import constants
 class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
-        self._gyro = navx.AHRS.create_spi()
+        self._gyro: navx.AHRS = navx.AHRS.create_spi()
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
@@ -72,6 +73,8 @@ class DriveTrain(Subsystem):
 
         if RobotBase.isSimulation():
             self.__configure_simulation()
+
+        self._field = Field2d()
 
     def __configure_simulation(self) -> None:
         self._sim_gyro = self._gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
@@ -111,9 +114,9 @@ class DriveTrain(Subsystem):
 
     def __create_output_objects(self) -> None:
         self._left_volts_out: VoltageOut = VoltageOut(0, enable_foc=False)
-        self._left_volts_out.update_freq_hz = 0
+        # self._left_volts_out.update_freq_hz = 0
         self._right_volts_out: VoltageOut = VoltageOut(0, enable_foc=False)
-        self._right_volts_out.update_freq_hz = 0
+        # self._right_volts_out.update_freq_hz = 0
 
         self._left_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
         self._right_percent_out: DutyCycleOut = DutyCycleOut(0, enable_foc=False)
@@ -200,6 +203,18 @@ class DriveTrain(Subsystem):
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
+    def drive_percent_out(self, forward: float, turn: float) -> None:
+        turn = self.__deadband(turn, 0.05)
+        forward = self.__deadband(forward, 0.05)
+
+        speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
+
+        self._left_percent_out.output = speeds.left
+        self._right_percent_out.output = speeds.right
+
+        self._left_leader.set_control(self._left_percent_out)
+        self._right_leader.set_control(self._right_percent_out)
+
     def drive_volts(self, left: float, right: float) -> None:
         self._left_volts_out.output = left
         self._right_volts_out.output = right
@@ -227,12 +242,24 @@ class DriveTrain(Subsystem):
         return input
 
     def periodic(self) -> None:
-        wpilib.SmartDashboard.putNumber(
-            "LeftEncoder", self._left_leader.get_position().value
-        )
-        wpilib.SmartDashboard.putNumber(
+        SmartDashboard.putNumber("LeftEncoder", self._left_leader.get_position().value)
+        SmartDashboard.putNumber(
             "RightEncoder", self._right_leader.get_position().value
         )
+
+        if RobotBase.isReal():
+            # This method will be called once per scheduler run
+            self._odometry.update(
+                self._gyro.getRotation2d(),
+                self.__rotations_to_meters(
+                    self._left_leader.get_position().value_as_double
+                ),
+                self.__rotations_to_meters(
+                    self._right_leader.get_position().value_as_double
+                ),
+            )
+
+        self._field.setRobotPose(self._odometry.getPose())
 
     def configure_motion_magic(self, distance_in_inches: float) -> None:
         """
@@ -339,8 +366,6 @@ class DriveTrain(Subsystem):
 
     def reset_odometry(self, pose: Pose2d) -> None:
         if RobotBase.isSimulation():
-            self._left_leader.set_position(0)
-            self._right_leader.set_position(0)
             self._drivesim.setPose(pose)
             self.navx_yaw.set(self._drivesim.getHeading().degrees())
         else:
@@ -439,6 +464,9 @@ class DriveTrain(Subsystem):
         )
 
         return motor_rotations_per_second
+
+    def __rotations_to_meters(self, rotations: float) -> float:
+        return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
     def follow_path_command(self, pathname: str) -> Command:
         path: PathPlannerPath = PathPlannerPath.fromPathFile(pathname)
