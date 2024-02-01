@@ -22,6 +22,7 @@ import intake
 import constants
 from typing import Tuple, List
 import shooter
+from followapriltag import FollowAprilTag
 
 
 class MyRobot(TimedCommandRobot):
@@ -120,7 +121,8 @@ class MyRobot(TimedCommandRobot):
         )
 
     def getAutonomousCommand(self) -> Command:
-        return PathPlannerAuto("Test")
+        #return PathPlannerAuto("Test")
+        return FollowAprilTag(self._drivetrain)
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:

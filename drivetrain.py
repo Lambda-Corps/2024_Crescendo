@@ -1,5 +1,7 @@
 import math
 
+####  Added to support following an AprilTag using Network tables
+import ntcore
 import wpilib.drive
 from wpilib import RobotBase, DriverStation
 import wpilib.simulation
@@ -49,6 +51,18 @@ class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self._gyro = navx.AHRS.create_spi()
+        self.rangefinder1 = wpilib.AnalogInput(1)  # Added to test Sharp IR Sensnor
+
+        ####  Added to support following an AprilTag using Network tables
+        self.NT_table_instance = ntcore.NetworkTableInstance.getDefault()
+        self.datatable = self.NT_table_instance.getTable("photonvision/USB_Camera_1")
+        self.camera_has_target = self.datatable.getBooleanTopic("hasTarget").subscribe(0)
+        self.yaw_angle_to_target = self.datatable.getFloatTopic("targetYaw").subscribe(0)
+        self.NT_table_instance.startClient4("Example Client")
+        self.NT_table_instance.setServerTeam(1895)
+        self.NT_table_instance.startDSClient()
+        ###
+
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
@@ -226,7 +240,25 @@ class DriveTrain(Subsystem):
 
         return input
 
+    def get_Apriltag_status(self) -> bool:
+        return self.camera_has_target.get()
+    
+    def get_Apriltag_yaw(self) -> float:
+        return self.yaw_angle_to_target.get()
+
     def periodic(self) -> None:
+
+        wpilib.SmartDashboard.putNumber(
+            "ShortRangeFinder", self.rangefinder1.getAverageVoltage()
+        )
+
+        wpilib.SmartDashboard.putBoolean(
+            "PhotonVision: AprilTag in sight:", self.camera_has_target.get()
+        )
+        wpilib.SmartDashboard.putNumber(
+            "Yaw Angle to AprilTag", self.yaw_angle_to_target.get()
+        )
+
         wpilib.SmartDashboard.putNumber(
             "LeftEncoder", self._left_leader.get_position().value
         )
