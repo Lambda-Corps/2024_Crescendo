@@ -107,12 +107,27 @@ class MyRobot(TimedCommandRobot):
             "FeedShooter", PrintCommand("Move Note into SHooter")
         )
 
-        AutoBuilder.configureRamsete(
-            self._drivetrain.get_robot_pose,  # Robot pose supplier
-            self._drivetrain.reset_odometry,  # Method to reset odometry (will be called if your auto has a starting pose)
+        # AutoBuilder.configureRamsete(
+        #     self._drivetrain.get_robot_pose,  # Robot pose supplier
+        #     self._drivetrain.reset_odometry,  # Method to reset odometry (will be called if your auto has a starting pose)
+        #     self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
+        #     self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
+        #     ReplanningConfig(),  # Default path replanning config. See the API for the options here
+        #     self._drivetrain.should_flip_path,  # Flip if we're on the red side
+        #     self._drivetrain,  # Reference to this subsystem to set requirements
+        # )
+
+        AutoBuilder.configureLTV(
+            self._drivetrain.get_robot_pose,
+            self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            ReplanningConfig(),  # Default path replanning config. See the API for the options here
+            [0.0625, 0.125, 2.5],
+            [-12, 12],
+            0.02,
+            ReplanningConfig(
+                False, False, 1, 0.25
+            ),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
         )

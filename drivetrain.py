@@ -366,8 +366,6 @@ class DriveTrain(Subsystem):
 
     def reset_odometry(self, pose: Pose2d) -> None:
         if RobotBase.isSimulation():
-            self._left_leader.set_position(0)
-            self._right_leader.set_position(0)
             self._drivesim.setPose(pose)
             self.navx_yaw.set(self._drivesim.getHeading().degrees())
         else:
