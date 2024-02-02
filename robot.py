@@ -133,8 +133,8 @@ class MyRobot(TimedCommandRobot):
         )
 
     def getAutonomousCommand(self) -> Command:
-        # return PathPlannerAuto("Test")
-        return PathPlannerAuto("TwoRingSub2")
+        return PathPlannerAuto("Test")
+        # return PathPlannerAuto("TwoRingSub2")
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:

@@ -48,7 +48,7 @@ class PhysicsEngine:
         self._robot_instance = robot
 
     def update_sim(self, now: float, tm_diff: float) -> None:
-        self._robot_instance._drivetrain.update_simulator(now, tm_diff)
+        # self._robot_instance._drivetrain.update_simulator(now, tm_diff)
 
         self.physics_controller.field.setRobotPose(
             self._robot_instance._drivetrain.get_robot_pose()

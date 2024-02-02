@@ -50,6 +50,7 @@ class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
+        SmartDashboard.putData("Navx", self._gyro)
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
@@ -78,7 +79,8 @@ class DriveTrain(Subsystem):
 
     def __configure_simulation(self) -> None:
         self._sim_gyro = self._gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
-        self.navx_yaw = self._gyro.getDouble("Yaw")
+        self.navx_yaw = self._sim_gyro.getDouble("Yaw")
+        self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
 
         self._system = LinearSystemId.identifyDrivetrainSystem(1.98, 0.2, 1.5, 0.3)
         self._drivesim = wpilib.simulation.DifferentialDrivetrainSim(
@@ -87,6 +89,11 @@ class DriveTrain(Subsystem):
             DCMotor.falcon500(2),
             constants.DT_GEAR_RATIO,
             constants.DT_WHEEL_RADIUS_INCHES,
+        )
+
+        self._left_leader.sim_state.orientation = ChassisReference.Clockwise_Positive
+        self._right_leader.sim_state.orientation = (
+            ChassisReference.CounterClockwise_Positive
         )
 
     def __configure_motion_magic(self, config: TalonFXConfiguration) -> None:
@@ -224,8 +231,8 @@ class DriveTrain(Subsystem):
 
     def driveSpeeds(self, speeds: ChassisSpeeds) -> None:
         speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
-        if RobotBase.isSimulation():
-            speeds.left *= -1
+        # if RobotBase.isSimulation():
+        #     speeds.left *= -1
         self.drive_volts(speeds.left, speeds.right)
 
     def __deadband(self, input: float, abs_min: float) -> float:
@@ -260,6 +267,73 @@ class DriveTrain(Subsystem):
             )
 
         self._field.setRobotPose(self._odometry.getPose())
+
+    def simulationPeriodic(self) -> None:
+        """
+        Called when the simulation parameters for the program need to be
+        updated.
+        :param now: The current time as a float
+        :param tm_diff: The amount of time that has passed since the last
+                        time that this function was called
+        """
+        # Currently, the Python API for CTRE doesn't automatically detect the the
+        # Sim driverstation status and enable the signals. So, for now, manually
+        # feed the enable signal for double the set robot period.
+        feed_enable(constants.ROBOT_PERIOD_MS * 2)
+
+        # Start the motor simulation work flow by passing robot battery voltage to sim motors
+        self._left_leader.sim_state.set_supply_voltage(
+            wpilib.RobotController.getBatteryVoltage()
+        )
+        self._right_leader.sim_state.set_supply_voltage(
+            wpilib.RobotController.getBatteryVoltage()
+        )
+        # self._l_follow_motor.set_supply_voltage(
+        #     wpilib.RobotController.getBatteryVoltage()
+        # )
+        # self._r_follow_motor.set_supply_voltage(
+        #     wpilib.RobotController.getBatteryVoltage()
+        # )
+
+        # Apply the motor inputs to the simulation
+        self._drivesim.setInputs(
+            self._left_leader.sim_state.motor_voltage,
+            self._right_leader.sim_state.motor_voltage,
+        )
+
+        # advance the simulation model a timing loop
+        self._drivesim.update(constants.ROBOT_PERIOD_MS)
+
+        # Update the motor values with the new calculated values from the physics engine
+        self._left_leader.sim_state.set_raw_rotor_position(
+            self.__feet_to_encoder_rotations(self._drivesim.getLeftPositionFeet())
+        )
+        self._left_leader.sim_state.set_rotor_velocity(
+            self.__velocity_feet_to_rps(self._drivesim.getLeftVelocityFps())
+        )
+        self._right_leader.sim_state.set_raw_rotor_position(
+            self.__feet_to_encoder_rotations(self._drivesim.getRightPositionFeet())
+        )
+        self._right_leader.sim_state.set_rotor_velocity(
+            self.__velocity_feet_to_rps(self._drivesim.getRightVelocityFps())
+        )
+        # self._l_follow_motor.set_raw_rotor_position(
+        #     self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
+        # )
+        # self._l_follow_motor.set_rotor_velocity(
+        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
+        # )
+        # self._r_follow_motor.set_raw_rotor_position(
+        #     self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
+        # )
+        # self._r_follow_motor.set_rotor_velocity(
+        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
+        # )
+
+        # Update the gyro simulation
+        degrees = self._drivesim.getHeading().degrees()
+        self.navx_yaw.set(degrees)
+        self.navx_comp.set(degrees)
 
     def configure_motion_magic(self, distance_in_inches: float) -> None:
         """
@@ -371,77 +445,6 @@ class DriveTrain(Subsystem):
         else:
             self._odometry.resetPosition(self._gyro.getRotation2d(), 0, 0, pose)
 
-    def update_simulator(self, now: float, tm_diff: float) -> None:
-        """
-        Called when the simulation parameters for the program need to be
-        updated.
-        :param now: The current time as a float
-        :param tm_diff: The amount of time that has passed since the last
-                        time that this function was called
-        """
-        # Currently, the Python API for CTRE doesn't automatically detect the the
-        # Sim driverstation status and enable the signals. So, for now, manually
-        # feed the enable signal for double the set robot period.
-        feed_enable(constants.ROBOT_PERIOD_MS * 2)
-
-        # CTRE simulation is low-level, it ignores some of the things like motor
-        # motor invresion etc.  WPILib wants +v to be forward.
-        # Start the motor simulation work flow by passing robot battery voltage to sim motors
-        self._left_leader.sim_state.set_supply_voltage(
-            wpilib.RobotController.getBatteryVoltage()
-        )
-        self._right_leader.sim_state.set_supply_voltage(
-            wpilib.RobotController.getBatteryVoltage()
-        )
-        # self._l_follow_motor.set_supply_voltage(
-        #     wpilib.RobotController.getBatteryVoltage()
-        # )
-        # self._r_follow_motor.set_supply_voltage(
-        #     wpilib.RobotController.getBatteryVoltage()
-        # )
-
-        # Apply the motor inputs to the simulation
-        self._drivesim.setInputs(
-            self._left_leader.sim_state.motor_voltage,
-            self._right_leader.sim_state.motor_voltage,
-        )
-
-        # advance the simulation model a timing loop
-        self._drivesim.update(tm_diff)
-
-        # transform = self.drivetrain.calculate(speeds[self.LEFT_SPEED_INDEX], speeds[self.RIGHT_SPEED_INDEX], tm_diff)
-        # pose = self.physics_controller.move_robot(transform)
-        self._left_leader.sim_state.set_raw_rotor_position(
-            -self.__feet_to_encoder_rotations(self._drivesim.getLeftPositionFeet())
-        )
-        self._left_leader.sim_state.set_rotor_velocity(
-            -self.__velocity_feet_to_rps(self._drivesim.getLeftVelocityFps())
-        )
-        self._right_leader.sim_state.set_raw_rotor_position(
-            self.__feet_to_encoder_rotations(self._drivesim.getRightPositionFeet())
-        )
-        self._right_leader.sim_state.set_rotor_velocity(
-            self.__velocity_feet_to_rps(self._drivesim.getRightVelocityFps())
-        )
-        # self._l_follow_motor.set_raw_rotor_position(
-        #     self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
-        # )
-        # self._l_follow_motor.set_rotor_velocity(
-        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
-        # )
-        # self._r_follow_motor.set_raw_rotor_position(
-        #     self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
-        # )
-        # self._r_follow_motor.set_rotor_velocity(
-        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
-        # )
-
-        # Update the gyro simulation
-        # -> FRC gyros are positive clockwise, but the returned pose is positive
-        #    counter-clockwise
-        pose = self._drivesim.getPose()
-        self.navx_yaw.set(self._drivesim.getHeading().degrees())
-
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
         # rotations = ---------------------  * gear ratio
@@ -485,47 +488,6 @@ class DriveTrain(Subsystem):
             .andThen(ramsete_cmd)
             .andThen(cmd.runOnce(lambda: self.drive_volts(0, 0)))
         )
-
-    # def test_ramsete_command(self) -> Command:
-    #     diff_kinematics: DifferentialDriveKinematics = DifferentialDriveKinematics(
-    #         constants.DT_TRACKWIDTH_METERS
-    #     )
-    #     ramsete_feed_forward: SimpleMotorFeedforwardMeters = (
-    #         SimpleMotorFeedforwardMeters(
-    #             constants.DT_KS_VOLTS,
-    #             constants.DT_KV_VOLTSECONDS_METER,
-    #             constants.DT_KV_VOLTSECONDS_SQUARED_METER,
-    #         )
-    #     )
-    #     voltageConstraint: DifferentialDriveVoltageConstraint = (
-    #         DifferentialDriveVoltageConstraint(
-    #             ramsete_feed_forward,
-    #             diff_kinematics,
-    #             constants.DT_MAX_VOLTS_PATH,
-    #         )
-    #     )
-
-    #     traj_config: TrajectoryConfig = TrajectoryConfig(
-    #         constants.DT_MAX_METERS_PER_SECOND,
-    #         constants.DT_MAX_ACCELERATION_MPS_SQUARED,
-    #     )
-    #     traj_config.setKinematics(diff_kinematics)
-    #     traj_config.addConstraint(voltageConstraint)
-
-    #     start_pose = Pose2d(1.34, 5.55, Rotation2d(math.pi))
-    #     end_pose = Pose2d(2.27, 5.55, Rotation2d(math.pi))
-    #     trajectory: Trajectory = TrajectoryGenerator.generateTrajectory(
-    #         start_pose,
-    #         [],
-    #         end_pose,
-    #         traj_config,
-    #     )
-
-    #     return (
-    #         cmd.runOnce(lambda: self.reset_odometry(start_pose))
-    #         .andThen(ramsete_cmd)
-    #         .andThen(cmd.runOnce(lambda: self.drive_volts(0, 0)))
-    #     )
 
     def should_flip_path(self) -> bool:
         # Boolean supplier that controls when the path will be mirrored for the red alliance

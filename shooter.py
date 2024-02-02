@@ -56,7 +56,6 @@ class Shooter(Subsystem):
         self._shooter_left.set_control(self._motor_output)
 
 
-
 class ShooterTestCommand(Command):
     """
     Command to run motors of the shooter with a button press
@@ -71,11 +70,9 @@ class ShooterTestCommand(Command):
 
     def initialize(self):
         self._shootspeed = SmartDashboard.getNumber("ShooterSpeed", 0)
-        SmartDashboard.putString("speed", f"Got Speed: {self._shootspeed}")
 
     def execute(self):
         self._sub.drive_motors(self._shootspeed)
-        SmartDashboard.putString("executing", f"execute: {self._shootspeed}")
 
     def isFinished(self) -> bool:
         return False
