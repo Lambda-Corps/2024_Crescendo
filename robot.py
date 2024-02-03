@@ -58,7 +58,7 @@ class MyRobot(TimedCommandRobot):
         self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
+        self._driver_controller.a().onTrue(intake.IntakeTestCommand(self._intake))
 
         self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
 
