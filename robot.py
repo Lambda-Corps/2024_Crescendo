@@ -96,26 +96,15 @@ class MyRobot(TimedCommandRobot):
 
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
-        # ShootSub
-        # DeployIntake
-        # FeedShooter
+        # These commands have to match exactly in the PathPlanner application
+        # as we name them here in the registration
         NamedCommands.registerCommand(
             "ShootSub", PrintCommand("Shoot Note into Speaker")
         )
-        NamedCommands.registerCommand("DeployIntake", PrintCommand("DeployIntake"))
+        NamedCommands.registerCommand("StartIntake", PrintCommand("StartIntake"))
         NamedCommands.registerCommand(
-            "FeedShooter", PrintCommand("Move Note into SHooter")
+            "FeedShooter", PrintCommand("Move Note into Shooter")
         )
-
-        # AutoBuilder.configureRamsete(
-        #     self._drivetrain.get_robot_pose,  # Robot pose supplier
-        #     self._drivetrain.reset_odometry,  # Method to reset odometry (will be called if your auto has a starting pose)
-        #     self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
-        #     self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-        #     ReplanningConfig(),  # Default path replanning config. See the API for the options here
-        #     self._drivetrain.should_flip_path,  # Flip if we're on the red side
-        #     self._drivetrain,  # Reference to this subsystem to set requirements
-        # )
 
         AutoBuilder.configureLTV(
             self._drivetrain.get_robot_pose,
@@ -124,12 +113,14 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
             # increasing Qelems numbers, tries to drive more conservatively (minimize error)
             # [0.0625, 0.125, 2.5],
+            # [0.09, 0.19, 3.7],
             # [0.125, 2.5, 5.0],
+            # [0.19, 3.75, 7.5],
             [2.5, 5.0, 10.0],
             # Decreasing Relems should make the motors drive less aggressively (fewer volts)
-            # [-10, 10],
+            [-10, 10],
             # [-11, 11],
-            [-12, 12],
+            # [-12, 12],
             0.02,
             ReplanningConfig(
                 False, False, 1, 0.25
@@ -138,9 +129,19 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain,  # Reference to this subsystem to set requirements
         )
 
+        # To configure the Autonomous routines use PathPlanner to define the auto routines
+        # Then, take all of the path planner created routines and add them to the auto
+        # chooser so the drive team can select the starting auto.
+        self._auto_chooser: wpilib.SendableChooser = wpilib.SendableChooser()
+        self._auto_chooser.setDefaultOption(
+            "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
+        )
+        self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
+
+        wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
+
     def getAutonomousCommand(self) -> Command:
-        # return PathPlannerAuto("Test")
-        return PathPlannerAuto("TwoRingSub2")
+        return self._auto_chooser.getSelected()
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:
