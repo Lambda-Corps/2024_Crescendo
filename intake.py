@@ -1,6 +1,7 @@
-from commands2 import Subsystem, Command
+from commands2 import Subsystem, Command, cmd
 from phoenix5 import TalonSRX, TalonSRXControlMode
-from wpilib import SmartDashboard
+from wpilib import SmartDashboard, AnalogInput, RobotBase
+from wpilib.simulation import AnalogInputSim
 
 import constants
 
@@ -9,6 +10,9 @@ class Intake(Subsystem):
     """
     Test class for shooter prototype
     """
+
+    DETECTION_VOLTS_LOWER_BOUND = 0.5
+    DETECTION_VOLTS_UPPER_BOUND = 3.0
 
     def __init__(self):
         super().__init__()
@@ -19,17 +23,36 @@ class Intake(Subsystem):
         self._indexroller.configFactoryDefault()
         self._indexleft = TalonSRX(constants.INDEX_LEFT)
         self._indexleft.configFactoryDefault()
-        self._indexleft.setInverted(True)
         self._indexright = TalonSRX(constants.INDEX_RIGHT)
         self._indexright.configFactoryDefault()
 
         SmartDashboard.putNumber("IntakeSpeed", 0.3)
+
+        self._detector: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK)
+
+        if RobotBase.isSimulation():
+            SmartDashboard.putNumber("SimVolts", 0)
+            self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
     def drive_index(self, speed: float):
         self._indexleft.set(TalonSRXControlMode.PercentOutput, speed)
         self._indexright.set(TalonSRXControlMode.PercentOutput, speed)
         self._indexroller.set(TalonSRXControlMode.PercentOutput, speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, speed)
+
+    def has_note(self) -> bool:
+        volts = self._detector.getAverageVoltage()
+
+        return (
+            volts > self.DETECTION_VOLTS_LOWER_BOUND
+            and volts < self.DETECTION_VOLTS_UPPER_BOUND
+        )
+
+    def simulationPeriodic(self) -> None:
+        self._simAnalogInput.setVoltage(SmartDashboard.getNumber("SimVolts", 0))
+
+    def periodic(self) -> None:
+        SmartDashboard.putNumber("RangeVoltage", self._detector.getAverageVoltage())
 
 
 class IntakeTestCommand(Command):
@@ -51,7 +74,7 @@ class IntakeTestCommand(Command):
         self._sub.drive_index(self._speed)
 
     def isFinished(self) -> bool:
-        return False
+        return self._sub.has_note()
 
     def end(self, interrupted: bool):
         self._sub.drive_index(0)

@@ -17,12 +17,14 @@ class Shooter(Subsystem):
     Test class for shooter prototype
     """
 
+    SPEAKER_RPS = 52  # measured with Tuner, putting motors at .55 (55%)
+
     def __init__(self):
         super().__init__()
         self._shooter_left: TalonFX = self.__configure_left_side()
         self._shooter_right: TalonFX = self.__configure_right_side()
 
-        SmartDashboard.putNumber("ShooterSpeed", 0)
+        SmartDashboard.putNumber("ShooterRPS", self.SPEAKER_RPS)
 
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
@@ -34,6 +36,18 @@ class Shooter(Subsystem):
         talon = TalonFX(constants.FLYWHEEL_LEFT)
 
         # Perform any other configuration
+        config: TalonFXConfiguration = TalonFXConfiguration()
+        config.slot0.k_s = 0.15  # Measured .15 volts to overcome static friction
+        config.slot0.k_v = 0.19  # Measured .19 for 1ps
+        config.slot0.k_a = 0.01  # complete guess, not measured
+        config.slot0.k_p = (
+            0.18  # an error of 1 RPS should add almost .19 more to correct
+        )
+        config.slot0.k_i = 0
+        config.slot0.k_d = 0
+
+        # Set neutral mode to coast
+        talon.configurator.apply(config)
 
         return talon
 
@@ -45,6 +59,9 @@ class Shooter(Subsystem):
         # correct orientation, so for our right side configuration just needs to
         # follow, but oppose the leader and it will give us the spin we want.
         talon = TalonFX(constants.FLYWHEEL_RIGHT)
+
+        # Neutral mode to coast
+
         talon.set_control(
             Follower(constants.FLYWHEEL_LEFT, oppose_master_direction=True)
         )
@@ -54,6 +71,11 @@ class Shooter(Subsystem):
     def drive_motors(self, speed: float):
         self._motor_output.output = speed
         self._shooter_left.set_control(self._motor_output)
+
+    def periodic(self) -> None:
+        SmartDashboard.putNumber(
+            "Velocity", self._shooter_left.get_velocity().value_as_double
+        )
 
 
 class ShooterTestCommand(Command):
@@ -69,7 +91,7 @@ class ShooterTestCommand(Command):
         self.addRequirements(self._sub)
 
     def initialize(self):
-        self._shootspeed = SmartDashboard.getNumber("ShooterSpeed", 0)
+        self._shootspeed = SmartDashboard.getNumber("ShooterRPS", 0)
 
     def execute(self):
         self._sub.drive_motors(self._shootspeed)
