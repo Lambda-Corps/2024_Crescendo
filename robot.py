@@ -58,7 +58,7 @@ class MyRobot(TimedCommandRobot):
         self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().onTrue(intake.IntakeTestCommand(self._intake))
+        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
 
         self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
 
@@ -122,7 +122,13 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            [0.0625, 0.125, 2.5],
+            # increasing Qelems numbers, tries to drive more conservatively (minimize error)
+            # [0.0625, 0.125, 2.5],
+            # [0.125, 2.5, 5.0],
+            [2.5, 5.0, 10.0],
+            # Decreasing Relems should make the motors drive less aggressively (fewer volts)
+            # [-10, 10],
+            # [-11, 11],
             [-12, 12],
             0.02,
             ReplanningConfig(
@@ -133,8 +139,8 @@ class MyRobot(TimedCommandRobot):
         )
 
     def getAutonomousCommand(self) -> Command:
-        return PathPlannerAuto("Test")
-        # return PathPlannerAuto("TwoRingSub2")
+        # return PathPlannerAuto("Test")
+        return PathPlannerAuto("TwoRingSub2")
 
     def teleopInit(self) -> None:
         if self._auto_command is not None:

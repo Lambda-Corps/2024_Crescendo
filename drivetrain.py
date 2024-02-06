@@ -76,6 +76,7 @@ class DriveTrain(Subsystem):
             self.__configure_simulation()
 
         self._field = Field2d()
+        SmartDashboard.putData("MyField", self._field)
 
     def __configure_simulation(self) -> None:
         self._sim_gyro = self._gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
@@ -226,6 +227,8 @@ class DriveTrain(Subsystem):
         self._left_volts_out.output = left
         self._right_volts_out.output = right
 
+        SmartDashboard.putNumber("LeftVolts", self._left_volts_out.output)
+        SmartDashboard.putNumber("RightVolts", self._right_volts_out.output)
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 

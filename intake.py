@@ -11,8 +11,8 @@ class Intake(Subsystem):
     Test class for shooter prototype
     """
 
-    DETECTION_VOLTS_LOWER_BOUND = 0.4
-    DETECTION_VOLTS_UPPER_BOUND = 2.0
+    DETECTION_VOLTS_LOWER_BOUND = 0.5
+    DETECTION_VOLTS_UPPER_BOUND = 3.0
 
     def __init__(self):
         super().__init__()
@@ -23,7 +23,6 @@ class Intake(Subsystem):
         self._indexroller.configFactoryDefault()
         self._indexleft = TalonSRX(constants.INDEX_LEFT)
         self._indexleft.configFactoryDefault()
-        self._indexleft.setInverted(True)
         self._indexright = TalonSRX(constants.INDEX_RIGHT)
         self._indexright.configFactoryDefault()
 
@@ -51,6 +50,9 @@ class Intake(Subsystem):
 
     def simulationPeriodic(self) -> None:
         self._simAnalogInput.setVoltage(SmartDashboard.getNumber("SimVolts", 0))
+
+    def periodic(self) -> None:
+        SmartDashboard.putNumber("RangeVoltage", self._detector.getAverageVoltage())
 
 
 class IntakeTestCommand(Command):
