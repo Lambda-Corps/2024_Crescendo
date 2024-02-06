@@ -106,19 +106,29 @@ class MyRobot(TimedCommandRobot):
             "FeedShooter", PrintCommand("Move Note into Shooter")
         )
 
+        # increasing Qelems numbers, tries to drive more conservatively as the effect
+        # In the math, what we're doing is weighting the error less heavily, meaning,
+        # as the error gets larger don't react as much.  This makes the robot drive
+        # conservatively along the path.
+        # Decreasing Relems should make the motors drive less aggressively (fewer volts)
+        # In the math, this is the same as increasing Q values.  Basically, think of it
+        # like a car, if you limit how far you can press the gas pedal, a driver
+        # has a better chance of keeping the car under control
+        # Down below, in comments, there are a few candidate values that have been used
+        # under testing.  Tweak, and test, to find the right ones.
         AutoBuilder.configureLTV(
             self._drivetrain.get_robot_pose,
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            # increasing Qelems numbers, tries to drive more conservatively (minimize error)
-            # [0.0625, 0.125, 2.5],
+            # [0.0625, 0.125, 2.5],  # <-- Q Elements
+            [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
             # [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
-            [2.5, 5.0, 10.0],
-            # Decreasing Relems should make the motors drive less aggressively (fewer volts)
-            [-10, 10],
+            # [2.5, 5.0, 10.0],
+            [-5, 5],  # <-- R elements
+            # [-10, 10],
             # [-11, 11],
             # [-12, 12],
             0.02,
