@@ -121,16 +121,17 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            # [0.0625, 0.125, 2.5],  # <-- Q Elements
+            #[0.0625, 0.125, 2.5],  # <-- Q Elements
             [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
             # [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
             # [2.5, 5.0, 10.0],
-            [-5, 5],  # <-- R elements
-            # [-10, 10],
-            # [-11, 11],
-            # [-12, 12],
+            # current [-5, 5],  # <-- R elements
+            [-0.5, 0.5],
+            #[-10, 10],
+            #[-11, 11],
+            #[-12, 12],
             0.02,
             ReplanningConfig(
                 False, False, 1, 0.25
@@ -147,6 +148,7 @@ class MyRobot(TimedCommandRobot):
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
+        self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 

@@ -68,7 +68,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "SubRing1"
+            "pathName": "SubRing3"
           }
         },
         {
@@ -80,7 +80,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Ring1Sub"
+            "pathName": "Ring3Sub"
           }
         }
       ]
