@@ -1,5 +1,6 @@
 from commands2 import Subsystem, Command
 from wpimath.geometry import Transform3d, Transform2d, Pose2d, Pose3d
+from wpimath.units import feetToMeters
 from photonlibpy.photonCamera import (
     PhotonCamera,
     setVersionCheckEnabled,
@@ -8,7 +9,7 @@ from photonlibpy.photonCamera import (
 from photonlibpy.photonTrackedTarget import PhotonTrackedTarget
 from robotpy_apriltag import AprilTagFieldLayout
 from wpilib import RobotBase
-from typing import List
+from typing import List, Dict
 
 import os
 
@@ -25,7 +26,7 @@ class VisionSystem(Subsystem):
         self._timeout_in_seconds = 1
 
         if RobotBase.isReal():
-            self._pcamera = RobotPhotonCamera("test", Pose3d())
+            self._pcamera = AprilTagPhotonCamera("test", Pose3d())
 
     def periodic(self) -> None:
         return super().periodic()
@@ -36,8 +37,13 @@ class CameraPoseEstimate:
         self._timestamp: float = obs_time
         self._estimate: Pose2d = Pose2d
 
+class TagMetaData:
+    def __init__(self, id: int, yaw: float):
+        self._id = id
+        self._yaw = yaw
 
-class RobotPhotonCamera:
+
+class AprilTagPhotonCamera:
     def __init__(self, name: str, center_offset: Transform3d) -> None:
         setVersionCheckEnabled(False)
 
@@ -46,14 +52,14 @@ class RobotPhotonCamera:
 
         self._pose_estimates: List = []
 
+        self._tag_metadatas: Dict = {}
+
         tagPath = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "deploy", "2024-crescendo.json")
         )
         self._fieldTagLayout: AprilTagFieldLayout = AprilTagFieldLayout(tagPath)
 
-        return
-
-    def update_camera_results(self, previousPoseEstimate: Pose2d) -> List:
+    def update_camera_results(self, previousPoseEstimate: Pose2d) -> None:
         # Grab the latest results from the camera. A result suggests that a camera frame
         # was processed, not that it found something.  We need to filter on the results
         # to get the best pose estimate
@@ -62,8 +68,9 @@ class RobotPhotonCamera:
 
         # Update the dashboard to let drivers know we're functional
 
-        # Clear the old list
+        # Clear the old values
         self._pose_estimates.clear()
+        self._tag_metadatas.clear()
 
         # Process each PhotonTrackedTarget
         # Use this as a basis for target selection:
@@ -93,6 +100,8 @@ class RobotPhotonCamera:
                         )
                     )
 
+                    self._tag_metadatas[target_ID] = TagMetaData(target_ID, target.getYaw)
+
                     # Now with a candidate list, filter for the best results
                     filtered_candidates: List[Pose2d] = []
                     for candidate in candidates:
@@ -117,6 +126,28 @@ class RobotPhotonCamera:
                             CameraPoseEstimate(result_time, best_candidate)
                         )
 
+    def get_pose_estimates(self) -> List:
+        return self._pose_estimates
+
     def __target_to_field_Pose(self, targetPose: Pose3d, offset: Transform3d) -> Pose2d:
         cameraPose = targetPose.transformBy(self._center_offset.inverse())
         return cameraPose.transformBy(self._center_offset.inverse()).toPose2d()
+
+    def __pose_on_field(self, pose: Pose2d) -> bool:
+        translation: Transform2d = pose.translation()
+
+        # Get the x,y values from the translation
+        x = translation.X()
+        y = translation.Y()
+
+        # Translate field dimensions to meters, to match the Translation values
+        # Then compare to make sure the location is within the field boundaries
+        x_in_field: bool = 0.0 <= x <= feetToMeters(54)
+        y_in_field: bool = 0.0 <= y <= feetToMeters(27)
+
+        return x_in_field and y_in_field
+    
+
+class NoteDetectionPhotonCamera:
+    def __init__(self) -> None:
+
