@@ -87,7 +87,7 @@ class DriveTrain(Subsystem):
         self._drivesim = wpilib.simulation.DifferentialDrivetrainSim(
             self._system,
             constants.DT_TRACKWIDTH_METERS,
-            DCMotor.falcon500(2),
+            DCMotor.falcon500(4),
             constants.DT_GEAR_RATIO,
             constants.DT_WHEEL_RADIUS_INCHES,
         )
