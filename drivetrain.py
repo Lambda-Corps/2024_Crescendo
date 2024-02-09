@@ -79,7 +79,7 @@ class DriveTrain(Subsystem):
         SmartDashboard.putData("MyField", self._field)
 
     def __configure_simulation(self) -> None:
-        self._sim_gyro = self._gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
+        self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self._sim_gyro.getDouble("Yaw")
         self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
 
@@ -257,19 +257,17 @@ class DriveTrain(Subsystem):
             "RightEncoder", self._right_leader.get_position().value
         )
 
-        if RobotBase.isReal():
-            # This method will be called once per scheduler run
-            self._odometry.update(
-                self._gyro.getRotation2d(),
-                self.__rotations_to_meters(
-                    self._left_leader.get_position().value_as_double
-                ),
-                self.__rotations_to_meters(
-                    self._right_leader.get_position().value_as_double
-                ),
-            )
+        pose = self._odometry.update(
+            Rotation2d().fromDegrees(self.__get_gyro_heading()),
+            self.__rotations_to_meters(
+                self._left_leader.get_position().value_as_double
+            ),
+            self.__rotations_to_meters(
+                self._right_leader.get_position().value_as_double
+            ),
+        )
 
-        self._field.setRobotPose(self._odometry.getPose())
+        self._field.setRobotPose(pose)
 
     def simulationPeriodic(self) -> None:
         """
@@ -425,11 +423,15 @@ class DriveTrain(Subsystem):
 
         return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
 
+    def __get_gyro_heading(self) -> float:
+        return self._gyro.getAngle()
+
     def get_robot_pose(self) -> Pose2d:
-        if RobotBase.isSimulation():
-            return self._drivesim.getPose()
-        else:
-            return self._odometry.getPose()
+        return self._odometry.getPose()
+        # if RobotBase.isSimulation():
+        #     return self._drivesim.getPose()
+        # else:
+        #     return self._odometry.getPose()
 
     def get_wheel_speeds(self) -> ChassisSpeeds:
         diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
@@ -442,11 +444,14 @@ class DriveTrain(Subsystem):
         return rotations * (math.pi * constants.DT_WHEEL_DIAMETER)
 
     def reset_odometry(self, pose: Pose2d) -> None:
-        if RobotBase.isSimulation():
-            self._drivesim.setPose(pose)
-            self.navx_yaw.set(self._drivesim.getHeading().degrees())
-        else:
-            self._odometry.resetPosition(self._gyro.getRotation2d(), 0, 0, pose)
+        self._gyro.setAngleAdjustment(pose.rotation().degrees())
+        rot2d: Rotation2d = Rotation2d.fromDegrees(pose.rotation().degrees())
+        self._odometry.resetPosition(rot2d, 0, 0, pose)
+        # if RobotBase.isSimulation():
+        #     self._drivesim.setPose(pose)
+
+    def reset_angle_offset(self) -> None:
+        self._gyro.setAngleAdjustment(0)
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12

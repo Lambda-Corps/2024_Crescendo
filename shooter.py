@@ -1,4 +1,4 @@
-from commands2 import Subsystem, Command
+from commands2 import Subsystem, Command, RunCommand
 from wpilib import SmartDashboard
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -7,7 +7,7 @@ from phoenix6.configs import (
 from phoenix6.hardware.talon_fx import TalonFX
 from phoenix6.controls.follower import Follower
 from phoenix6.signals.spn_enums import InvertedValue, NeutralModeValue
-from phoenix6.controls import DutyCycleOut
+from phoenix6.controls import DutyCycleOut, VelocityVoltage
 
 import constants
 
@@ -28,7 +28,10 @@ class Shooter(Subsystem):
 
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
-        self._motor_output = DutyCycleOut(0, enable_foc=False)
+        # self._motor_output = DutyCycleOut(0, enable_foc=False)
+        self._motor_output = VelocityVoltage(0, enable_foc=False)
+
+        self._motor_rps = self.SPEAKER_RPS
 
     def __configure_left_side(
         self,
@@ -68,14 +71,23 @@ class Shooter(Subsystem):
 
         return talon
 
-    def drive_motors(self, speed: float):
-        self._motor_output.output = speed
+    def drive_motors(self):
+        self._motor_output.velocity = self._motor_rps
         self._shooter_left.set_control(self._motor_output)
 
     def periodic(self) -> None:
         SmartDashboard.putNumber(
             "Velocity", self._shooter_left.get_velocity().value_as_double
         )
+
+    def shooter_at_speed(self) -> bool:
+        return self._shooter_left.get_velocity().value_as_double >= self._motor_rps - 1
+
+    def set_shooter_speed(self, speed: float) -> None:
+        self._motor_rps = speed
+
+    def run_shooter(self) -> Command:
+        return RunCommand(lambda: self.drive_motors(), self)
 
 
 class ShooterTestCommand(Command):
@@ -92,9 +104,10 @@ class ShooterTestCommand(Command):
 
     def initialize(self):
         self._shootspeed = SmartDashboard.getNumber("ShooterRPS", 0)
+        self._sub.set_shooter_speed(self._shootspeed)
 
     def execute(self):
-        self._sub.drive_motors(self._shootspeed)
+        self._sub.drive_motors()
 
     def isFinished(self) -> bool:
         return False

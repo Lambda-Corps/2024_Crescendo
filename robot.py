@@ -62,6 +62,10 @@ class MyRobot(TimedCommandRobot):
 
         self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
 
+        self._driver_controller.x().whileTrue(
+            RunCommand(lambda: self._drivetrain.drive_volts(-1, 1))
+        )
+
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
@@ -121,7 +125,7 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            #[0.0625, 0.125, 2.5],  # <-- Q Elements
+            # [0.0625, 0.125, 2.5],  # <-- Q Elements
             [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
             # [0.125, 2.5, 5.0],
@@ -129,13 +133,11 @@ class MyRobot(TimedCommandRobot):
             # [2.5, 5.0, 10.0],
             # current [-5, 5],  # <-- R elements
             [-0.5, 0.5],
-            #[-10, 10],
-            #[-11, 11],
-            #[-12, 12],
+            # [-10, 10],
+            # [-11, 11],
+            # [-12, 12],
             0.02,
-            ReplanningConfig(
-                False, False, 1, 0.25
-            ),  # Default path replanning config. See the API for the options here
+            ReplanningConfig(),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
         )
@@ -149,6 +151,8 @@ class MyRobot(TimedCommandRobot):
         )
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
         self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
+        # self._auto_chooser.addOption("Test Pose Set", PathPlannerAuto("TestPose"))
+        self._auto_chooser.addOption("Test Pose", AutoBuilder.buildAuto("TestPose"))
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
