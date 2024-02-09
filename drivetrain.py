@@ -432,7 +432,6 @@ class DriveTrain(Subsystem):
 
     def reset_odometry(self, pose: Pose2d) -> None:
         self._gyro.setAngleAdjustment(pose.rotation().degrees())
-        rot2d: Rotation2d = Rotation2d.fromDegrees(pose.rotation().degrees())
         self._odometry.resetPosition(
             Rotation2d.fromDegrees(self._gyro.getAngle()), 0, 0, pose
         )
