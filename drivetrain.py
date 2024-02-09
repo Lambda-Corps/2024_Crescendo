@@ -170,6 +170,8 @@ class DriveTrain(Subsystem):
         #     ChassisReference.Clockwise_Positive
         # )
 
+        self._left_leader.set_position(0)
+
     def __configure_right_side_drive(self) -> None:
         self._right_leader = TalonFX(constants.DT_RIGHT_LEADER)
         # self._right_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
@@ -197,6 +199,8 @@ class DriveTrain(Subsystem):
             ChassisReference.CounterClockwise_Positive
         )
         # self._right_follower.sim_state.Orientation = ChassisReference.CounterClockwise_Positive
+
+        self._right_leader.set_position(0)
 
     def drive_teleop(self, forward: float, turn: float) -> None:
         turn = self.__deadband(turn, 0.05)
