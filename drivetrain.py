@@ -50,7 +50,6 @@ class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
-        SmartDashboard.putData("Navx", self._gyro)
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
@@ -81,7 +80,7 @@ class DriveTrain(Subsystem):
     def __configure_simulation(self) -> None:
         self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self._sim_gyro.getDouble("Yaw")
-        self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
+        # self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
 
         self._system = LinearSystemId.identifyDrivetrainSystem(1.98, 0.2, 1.5, 0.3)
         self._drivesim = wpilib.simulation.DifferentialDrivetrainSim(
@@ -227,15 +226,11 @@ class DriveTrain(Subsystem):
         self._left_volts_out.output = left
         self._right_volts_out.output = right
 
-        SmartDashboard.putNumber("LeftVolts", self._left_volts_out.output)
-        SmartDashboard.putNumber("RightVolts", self._right_volts_out.output)
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
     def driveSpeeds(self, speeds: ChassisSpeeds) -> None:
         speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
-        # if RobotBase.isSimulation():
-        #     speeds.left *= -1
         self.drive_volts(speeds.left, speeds.right)
 
     def __deadband(self, input: float, abs_min: float) -> float:
@@ -268,6 +263,7 @@ class DriveTrain(Subsystem):
         )
 
         self._field.setRobotPose(pose)
+        SmartDashboard.putNumber("Gyro Angle", self._gyro.getAngle())
 
     def simulationPeriodic(self) -> None:
         """
@@ -334,7 +330,7 @@ class DriveTrain(Subsystem):
         # Update the gyro simulation
         degrees = self._drivesim.getHeading().degrees()
         self.navx_yaw.set(degrees)
-        self.navx_comp.set(degrees)
+        # self.navx_comp.set(degrees)
 
     def configure_motion_magic(self, distance_in_inches: float) -> None:
         """
@@ -396,8 +392,7 @@ class DriveTrain(Subsystem):
         wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
 
     def __turn_with_pid(self) -> None:
-        curr_angle = self._gyro.getYaw()
-        wpilib.SmartDashboard.putNumber("Yaw", curr_angle)
+        curr_angle = self._gyro.getAngle()
 
         pidoutput = self._turn_pid_controller.calculate(curr_angle)
 
@@ -408,11 +403,7 @@ class DriveTrain(Subsystem):
             pidoutput = self._turn_kF
 
         wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
-
-        if RobotBase.isSimulation():
-            self.drive_teleop(pidoutput, 0)
-        else:
-            self.drive_teleop(0, pidoutput)
+        self.drive_teleop(0, pidoutput)
 
     def __at_turn_setpoint(self) -> bool:
         curr_angle = self._gyro.getYaw()
@@ -428,10 +419,6 @@ class DriveTrain(Subsystem):
 
     def get_robot_pose(self) -> Pose2d:
         return self._odometry.getPose()
-        # if RobotBase.isSimulation():
-        #     return self._drivesim.getPose()
-        # else:
-        #     return self._odometry.getPose()
 
     def get_wheel_speeds(self) -> ChassisSpeeds:
         diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
@@ -446,9 +433,9 @@ class DriveTrain(Subsystem):
     def reset_odometry(self, pose: Pose2d) -> None:
         self._gyro.setAngleAdjustment(pose.rotation().degrees())
         rot2d: Rotation2d = Rotation2d.fromDegrees(pose.rotation().degrees())
-        self._odometry.resetPosition(rot2d, 0, 0, pose)
-        # if RobotBase.isSimulation():
-        #     self._drivesim.setPose(pose)
+        self._odometry.resetPosition(
+            Rotation2d.fromDegrees(self._gyro.getAngle()), 0, 0, pose
+        )
 
     def reset_angle_offset(self) -> None:
         self._gyro.setAngleAdjustment(0)

@@ -137,7 +137,9 @@ class MyRobot(TimedCommandRobot):
             # [-11, 11],
             # [-12, 12],
             0.02,
-            ReplanningConfig(),  # Default path replanning config. See the API for the options here
+            ReplanningConfig(
+                False, False
+            ),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
         )
@@ -151,8 +153,6 @@ class MyRobot(TimedCommandRobot):
         )
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
         self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
-        # self._auto_chooser.addOption("Test Pose Set", PathPlannerAuto("TestPose"))
-        self._auto_chooser.addOption("Test Pose", AutoBuilder.buildAuto("TestPose"))
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
@@ -183,13 +183,3 @@ class MyRobot(TimedCommandRobot):
 
     def teleopPeriodic(self) -> None:
         return super().teleopPeriodic()
-
-    def get_starting_pose(self) -> Pose2d:
-        return Pose2d(1.34, 5.55, math.pi)
-
-    def save_pose(self, pose: Pose2d) -> None:
-        if RobotBase.isSimulation():
-            self._current_pose = pose
-
-    def get_saved_pose(self) -> Pose2d:
-        return self._current_pose
