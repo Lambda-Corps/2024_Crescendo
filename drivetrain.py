@@ -435,13 +435,22 @@ class DriveTrain(Subsystem):
         return rotations * (math.pi * constants.DT_WHEEL_DIAMETER)
 
     def reset_odometry(self, pose: Pose2d) -> None:
-        self._gyro.setAngleAdjustment(pose.rotation().degrees())
+        # self._gyro.setAngleAdjustment(pose.rotation().degrees())
         self._odometry.resetPosition(
-            Rotation2d.fromDegrees(self._gyro.getAngle()), 0, 0, pose
+            # Rotation2d.fromDegrees(self._gyro.getAngle()), 0, 0, pose
+            self._gyro.getRotation2d(),
+            0,
+            0,
+            pose,
         )
 
     def reset_angle_offset(self) -> None:
         self._gyro.setAngleAdjustment(0)
+
+    def set_blue_gyro_information(self) -> None:
+        pose = Pose2d(1.34, 5.55, math.pi)
+        self.reset_odometry(pose)
+        self._gyro.zeroYaw()
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
