@@ -12,7 +12,7 @@ class Intake(Subsystem):
     """
 
     DETECTION_VOLTS_LOWER_BOUND = 0.5
-    DETECTION_VOLTS_UPPER_BOUND = 3.0
+    DETECTION_VOLTS_UPPER_BOUND = 4.0
 
     def __init__(self):
         super().__init__()
@@ -74,7 +74,8 @@ class IntakeTestCommand(Command):
         self._sub.drive_index(self._speed)
 
     def isFinished(self) -> bool:
-        return self._sub.has_note()
+        # return self._sub.has_note()
+        return False
 
     def end(self, interrupted: bool):
         self._sub.drive_index(0)

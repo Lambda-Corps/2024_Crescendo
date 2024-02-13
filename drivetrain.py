@@ -206,6 +206,9 @@ class DriveTrain(Subsystem):
         turn = self.__deadband(turn, 0.05)
         forward = self.__deadband(forward, 0.05)
 
+        turn = self.__clamp(turn, 0.5)
+        forward = self.__clamp(forward, 0.5)
+
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
         self._left_volts_out.output = speeds.left * 12.0
@@ -247,6 +250,17 @@ class DriveTrain(Subsystem):
 
         if input > 0 and input < abs_min:
             input = 0
+
+        return input
+
+    def __clamp(self, input: float, abs_max: float) -> None:
+        if input < 0:
+            abs_max *= -1
+
+            if input < abs_max:
+                input = abs_max
+        elif input > 0 and input > abs_max:
+            input = abs_max
 
         return input
 
@@ -432,7 +446,7 @@ class DriveTrain(Subsystem):
         return self._kinematics.toChassisSpeeds(diff_speed)
 
     def __rps_to_mps(self, rotations: float) -> float:
-        return rotations * (math.pi * constants.DT_WHEEL_DIAMETER)
+        return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
     def reset_odometry(self, pose: Pose2d) -> None:
         # self._gyro.setAngleAdjustment(pose.rotation().degrees())

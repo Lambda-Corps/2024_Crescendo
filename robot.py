@@ -36,7 +36,12 @@ class MyRobot(TimedCommandRobot):
         dashboards
         """
         # Setup the operator interface (typically CommandXboxController)
-        self._driver_controller = CommandXboxController(0)
+        self._driver_controller = CommandXboxController(
+            constants.CONTROLLER_DRIVER_PORT
+        )
+        self._partner_controller = CommandXboxController(
+            constants.CONTROLLER_PARTNER_PORT
+        )
 
         # Instantiate any subystems
         self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
@@ -97,6 +102,15 @@ class MyRobot(TimedCommandRobot):
                     self._drivetrain,
                 ).withName("DefaultDrive")
             )
+
+        self._shooter.setDefaultCommand(
+            RunCommand(
+                lambda: self._shooter.drive_shooter_ramp(
+                    -self._partner_controller.getLeftY()
+                ),
+                self._shooter,
+            ).withName("ShooterDefault")
+        )
 
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
