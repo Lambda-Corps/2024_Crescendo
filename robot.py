@@ -153,6 +153,8 @@ class MyRobot(TimedCommandRobot):
         )
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
         self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
+        self._auto_chooser.addOption("Sub 1 - Two Ring", PathPlannerAuto("TwoRingSub1"))
+        self._auto_chooser.addOption("Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long"))
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
