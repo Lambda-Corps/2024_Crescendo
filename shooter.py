@@ -44,6 +44,8 @@ class Shooter(Subsystem):
                 DCMotor.falcon500(1), constants.SHOOTER_GEARING, constants.SHOOTER_MOI
             )
 
+            self._sim_counter = 0
+
     def __configure_left_side(
         self,
     ) -> TalonFX:
@@ -114,7 +116,17 @@ class Shooter(Subsystem):
             )
 
     def shooter_at_speed(self) -> bool:
-        return self._shooter_left.get_velocity().value_as_double >= self._motor_rps - 1
+        # For some reason the simulator speed is broken, so if we're in the simulator
+        # Just return after some approximation of 1 second
+        if RobotBase.isSimulation():
+            self._sim_counter += 1
+            if self._sim_counter % 50:
+                return True
+        else:
+            # In the real robot, return the actual velocity
+            return (
+                self._shooter_left.get_velocity().value_as_double >= self._motor_rps - 1
+            )
 
     def set_shooter_speed(self, speed: float) -> None:
         self._motor_rps = speed

@@ -40,12 +40,25 @@ class Intake(Subsystem):
         self._indexroller.set(TalonSRXControlMode.PercentOutput, speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, speed)
 
+    def stop_indexer(self) -> None:
+        self._indexleft.set(TalonSRXControlMode.PercentOutput, 0)
+        self._indexright.set(TalonSRXControlMode.PercentOutput, 0)
+        self._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
+        self._intakeroller.set(TalonSRXControlMode.PercentOutput, 0)
+
     def has_note(self) -> bool:
         volts = self._detector.getAverageVoltage()
 
         return (
             volts > self.DETECTION_VOLTS_LOWER_BOUND
             and volts < self.DETECTION_VOLTS_UPPER_BOUND
+        )
+
+    def index_note(self, speed: float) -> Command:
+        return (
+            cmd.run(lambda: self.drive_index(speed))
+            .withTimeout(1)
+            .withName("IndexNote")
         )
 
     def simulationPeriodic(self) -> None:

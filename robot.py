@@ -8,6 +8,7 @@ from commands2 import (
     Command,
     PrintCommand,
     RunCommand,
+    cmd,
 )
 from commands2.button import CommandXboxController
 from wpimath.geometry import Pose2d
@@ -17,11 +18,11 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
-import drivetrain
-import intake
+from drivetrain import DriveTrain
+from intake import Intake, IntakeTestCommand
+from shooter import Shooter, ShooterTestCommand
 import constants
 from typing import Tuple, List
-import shooter
 
 
 class MyRobot(TimedCommandRobot):
@@ -44,13 +45,13 @@ class MyRobot(TimedCommandRobot):
         )
 
         # Instantiate any subystems
-        self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
+        self._drivetrain: DriveTrain = DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
-        self._intake: intake.Intake = intake.Intake()
+        self._intake: Intake = Intake()
         wpilib.SmartDashboard.putData("Intake", self._intake)
 
-        self._shooter: shooter.Shooter = shooter.Shooter()
+        self._shooter: Shooter = Shooter()
         wpilib.SmartDashboard.putData("Shooter", self._shooter)
 
         self.__configure_default_commands()
@@ -63,12 +64,41 @@ class MyRobot(TimedCommandRobot):
         self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
+        # Driver controller controls first
+        self._driver_controller.a().whileTrue(IntakeTestCommand(self._intake))
 
-        self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
+        self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
 
-        self._driver_controller.x().whileTrue(
-            RunCommand(lambda: self._drivetrain.drive_volts(-1, 1))
+        # Partner controller controls
+        self._partner_controller.a().onTrue(
+            cmd.run(
+                # Spin up the shooter until the speed is correct, then run
+                # the indexer to move the note into the flywheels for 1 second
+                lambda: self._shooter.drive_motors(),
+                self._shooter,
+            )
+            .until(self._shooter.shooter_at_speed)
+            .andThen(self._intake.index_note(0.4))
+            .withName("ShootNote")
+        )
+        self._partner_controller.b().onTrue(
+            cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter)
+        )
+        self._partner_controller.x().onTrue(
+            cmd.run(  # Subsystem "do stuff", basically execute
+                lambda: self._intake.drive_index(0.4), self._intake
+            )
+            .until(  # Subsystem "stop", what would be in isFinished()
+                self._intake.has_note
+            )  # Give it a name so we see what command is running
+            .withName("IntakeNote")
+        )
+
+        self._partner_controller.y().onTrue(
+            # Stop all indexer motors
+            cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
+                "StopIndexer"
+            )
         )
 
     def __configure_default_commands(self) -> None:
@@ -168,7 +198,9 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
         self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
         self._auto_chooser.addOption("Sub 1 - Two Ring", PathPlannerAuto("TwoRingSub1"))
-        self._auto_chooser.addOption("Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long"))
+        self._auto_chooser.addOption(
+            "Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long")
+        )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
