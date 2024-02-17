@@ -35,7 +35,7 @@ class Shooter(Subsystem):
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
         # self._motor_output = DutyCycleOut(0, enable_foc=False)
-        self._motor_output = VelocityVoltage(0, enable_foc=False)
+        self._motor_output = VelocityVoltage(0, enable_foc=False, slot=0)
 
         self._motor_rps = self.SPEAKER_RPS
 

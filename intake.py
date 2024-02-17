@@ -11,7 +11,7 @@ class Intake(Subsystem):
     Test class for shooter prototype
     """
 
-    DETECTION_VOLTS_LOWER_BOUND = 0.5
+    DETECTION_VOLTS_LOWER_BOUND = 1.0
     DETECTION_VOLTS_UPPER_BOUND = 4.0
 
     def __init__(self):
@@ -34,7 +34,9 @@ class Intake(Subsystem):
             SmartDashboard.putNumber("SimVolts", 0)
             self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
-    def drive_index(self, speed: float):
+    def drive_index(self):
+        speed = SmartDashboard.getNumber("IntakeSpeed", 0)
+        # def drive_index(self, speed: float):
         self._indexleft.set(TalonSRXControlMode.PercentOutput, speed)
         self._indexright.set(TalonSRXControlMode.PercentOutput, speed)
         self._indexroller.set(TalonSRXControlMode.PercentOutput, speed)
@@ -55,11 +57,7 @@ class Intake(Subsystem):
         )
 
     def index_note(self, speed: float) -> Command:
-        return (
-            cmd.run(lambda: self.drive_index(speed))
-            .withTimeout(1)
-            .withName("IndexNote")
-        )
+        return cmd.run(lambda: self.drive_index()).withTimeout(1).withName("IndexNote")
 
     def simulationPeriodic(self) -> None:
         self._simAnalogInput.setVoltage(SmartDashboard.getNumber("SimVolts", 0))
@@ -81,14 +79,14 @@ class IntakeTestCommand(Command):
         self.addRequirements(self._sub)
 
     def initialize(self):
-        self._speed = SmartDashboard.getNumber("IntakeSpeed", 0.3)
+        # self._speed = SmartDashboard.getNumber("IntakeSpeed", 0.3)
+        pass
 
     def execute(self):
-        self._sub.drive_index(self._speed)
+        self._sub.drive_index()
 
     def isFinished(self) -> bool:
-        # return self._sub.has_note()
-        return False
+        return self._sub.has_note()
 
     def end(self, interrupted: bool):
-        self._sub.drive_index(0)
+        self._sub.stop_indexer()

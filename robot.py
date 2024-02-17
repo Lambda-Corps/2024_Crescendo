@@ -21,6 +21,7 @@ from pathplannerlib.auto import (
 from drivetrain import DriveTrain
 from intake import Intake, IntakeTestCommand
 from shooter import Shooter, ShooterTestCommand
+from robot_commands import ShootCommand
 import constants
 from typing import Tuple, List
 
@@ -70,29 +71,21 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
 
         # Partner controller controls
-        self._partner_controller.a().onTrue(
-            cmd.run(
-                # Spin up the shooter until the speed is correct, then run
-                # the indexer to move the note into the flywheels for 1 second
-                lambda: self._shooter.drive_motors(),
-                self._shooter,
-            )
-            .until(self._shooter.shooter_at_speed)
-            .andThen(self._intake.index_note(0.4))
-            .withName("ShootNote")
-        )
+        self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
         self._partner_controller.b().onTrue(
             cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter)
         )
-        self._partner_controller.x().onTrue(
-            cmd.run(  # Subsystem "do stuff", basically execute
-                lambda: self._intake.drive_index(0.4), self._intake
-            )
-            .until(  # Subsystem "stop", what would be in isFinished()
-                self._intake.has_note
-            )  # Give it a name so we see what command is running
-            .withName("IntakeNote")
-        )
+        # self._partner_controller.x().onTrue(
+        #     cmd.run(  # Subsystem "do stuff", basically execute
+        #         lambda: self._intake.drive_index(), self._intake
+        #     )
+        #     .until(  # Subsystem "stop", what would be in isFinished()
+        #         self._intake.has_note
+        #     )  # Give it a name so we see what command is running
+        #     .andThen(lambda: self._intake.stop_indexer(), self._intake)
+        #     .withName("IntakeNote")
+        # )
+        self._partner_controller.x().onTrue(IntakeTestCommand(self._intake))
 
         self._partner_controller.y().onTrue(
             # Stop all indexer motors

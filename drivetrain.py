@@ -77,6 +77,9 @@ class DriveTrain(Subsystem):
         self._field = Field2d()
         SmartDashboard.putData("MyField", self._field)
 
+        # TODO Remove this for competition
+        SmartDashboard.putNumber("ClampSpeed", 0.3)
+
     def __configure_simulation(self) -> None:
         self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self._sim_gyro.getDouble("Yaw")
@@ -206,8 +209,9 @@ class DriveTrain(Subsystem):
         turn = self.__deadband(turn, 0.05)
         forward = self.__deadband(forward, 0.05)
 
-        turn = self.__clamp(turn, 0.5)
-        forward = self.__clamp(forward, 0.5)
+        clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 0.3)
+        turn = self.__clamp(turn, clamp_max)
+        forward = self.__clamp(forward, clamp_max)
 
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
