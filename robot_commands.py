@@ -31,8 +31,9 @@ class ShootCommand(Command):
 
     def execute(self):
         # Once the shooter is up to speed, index the notes
-        if self._shooter.shooter_at_speed():
-            self._intake.drive_index()
+        # if self._shooter.shooter_at_speed():
+        if self._timer.hasElapsed(1):
+            self._intake.drive_index(shooting=True)
 
     def isFinished(self) -> bool:
         return self._timer.hasElapsed(self.RUN_DURATION)

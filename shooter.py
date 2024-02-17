@@ -30,7 +30,13 @@ class Shooter(Subsystem):
         self._shooter_ramp: TalonSRX = self.__configure_shooter_ramp()
         self._shooter_ramp_angle: DutyCycleEncoder = self.__configure_ramp_encoder()
 
+        self._indexleft = TalonSRX(constants.INDEX_LEFT)
+        self._indexleft.configFactoryDefault()
+        self._indexright = TalonSRX(constants.INDEX_RIGHT)
+        self._indexright.configFactoryDefault()
+
         SmartDashboard.putNumber("ShooterRPS", self.SPEAKER_RPS)
+        SmartDashboard.putNumber("ShooterPercent", 0.5)
 
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
@@ -98,12 +104,17 @@ class Shooter(Subsystem):
         return encoder
 
     def drive_motors(self):
+        speed_775: float = SmartDashboard.getNumber("ShooterPercent", 0)
         self._motor_output.velocity = self._motor_rps
         self._shooter_left.set_control(self._motor_output)
+        self._indexleft.set(ControlMode.PercentOutput, speed_775)
+        self._indexright.set(ControlMode.PercentOutput, speed_775)
 
     def stop_motors(self) -> None:
         self._motor_output.velocity = 0
         self._shooter_left.set_control(self._motor_output)
+        self._indexleft.set(ControlMode.PercentOutput, 0)
+        self._indexright.set(ControlMode.PercentOutput, 0)
 
     def periodic(self) -> None:
         SmartDashboard.putNumber(
