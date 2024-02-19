@@ -194,6 +194,22 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption(
             "Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long")
         )
+        self._auto_chooser.addOption(
+            "Turn Left",
+            RunCommand(
+                lambda: self._drivetrain.drive_volts(-0.2, 0.2), self._drivetrain
+            )
+            .withTimeout(3)
+            .withName("Turn Left 3"),
+        )
+        self._auto_chooser.addOption(
+            "Turn Right",
+            RunCommand(
+                lambda: self._drivetrain.drive_volts(0.2, -0.2), self._drivetrain
+            )
+            .withTimeout(3)
+            .withName("Turn Right 3"),
+        )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
@@ -208,6 +224,11 @@ class MyRobot(TimedCommandRobot):
         CommandScheduler.getInstance().cancelAll()
 
     def autonomousInit(self) -> None:
+        # If we're starting on the blue side, offset the Navx angle by 180
+        # so 0 degrees points to the right for NWU
+        self._drivetrain.set_alliance_offset()
+        self._drivetrain.reset_encoders()
+
         self._auto_command = self.getAutonomousCommand()
 
         if self._auto_command is not None:

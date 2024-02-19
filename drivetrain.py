@@ -43,6 +43,7 @@ from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.commands import FollowPathRamsete
 from pathplannerlib.config import ReplanningConfig, PIDConstants
 
+from ccwnavx import CCWNavx
 import constants
 
 
@@ -76,6 +77,8 @@ class DriveTrain(Subsystem):
 
         self._field = Field2d()
         SmartDashboard.putData("MyField", self._field)
+
+        SmartDashboard.putData("Navx", self._gyro)
 
         # TODO Remove this for competition
         SmartDashboard.putNumber("ClampSpeed", 0.3)
@@ -456,6 +459,9 @@ class DriveTrain(Subsystem):
         else:
             return angle if angle <= 180 else angle - 360
 
+    def __set_gyro_heading(self) -> None:
+        pass
+
     def get_robot_pose(self) -> Pose2d:
         return self._odometry.getPose()
 
@@ -485,6 +491,10 @@ class DriveTrain(Subsystem):
             self._gyro.setAngleAdjustment(180)
         else:
             self._gyro.setAngleAdjustment(0)
+
+    def reset_encoders(self) -> None:
+        self._left_leader.set_position(0)
+        self._right_leader.set_position(0)
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
