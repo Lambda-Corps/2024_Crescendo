@@ -294,7 +294,7 @@ class DriveTrain(Subsystem):
         )
 
         self._field.setRobotPose(pose)
-        SmartDashboard.putNumber("Gyro Angle", self._gyro.getAngle())
+        SmartDashboard.putNumber("Gyro Angle", self.__get_gyro_heading())
 
     def simulationPeriodic(self) -> None:
         """
@@ -360,7 +360,10 @@ class DriveTrain(Subsystem):
 
         # Update the gyro simulation
         degrees = self._drivesim.getHeading().degrees()
-        self.navx_yaw.set(degrees)
+
+        # The drive train simulator is CCW positive, and the Navx is not.  So when we set
+        # the Yaw value here, negate it to represent the real world Navx as well.
+        self.navx_yaw.set(-degrees)
         # self.navx_comp.set(degrees)
 
     def configure_motion_magic(self, distance_in_inches: float) -> None:
@@ -446,7 +449,12 @@ class DriveTrain(Subsystem):
         return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
 
     def __get_gyro_heading(self) -> float:
-        return self._gyro.getAngle()
+        angle = math.fmod(-self._gyro.getAngle(), 360)
+
+        if angle < 0:
+            return angle if angle >= -180 else angle + 360
+        else:
+            return angle if angle <= 180 else angle - 360
 
     def get_robot_pose(self) -> Pose2d:
         return self._odometry.getPose()
@@ -462,9 +470,7 @@ class DriveTrain(Subsystem):
         return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
     def reset_odometry(self, pose: Pose2d) -> None:
-        # self._gyro.setAngleAdjustment(pose.rotation().degrees())
         self._odometry.resetPosition(
-            # Rotation2d.fromDegrees(self._gyro.getAngle()), 0, 0, pose
             self._gyro.getRotation2d(),
             0,
             0,
@@ -474,10 +480,11 @@ class DriveTrain(Subsystem):
     def reset_angle_offset(self) -> None:
         self._gyro.setAngleAdjustment(0)
 
-    def set_blue_gyro_information(self) -> None:
-        pose = Pose2d(1.34, 5.55, math.pi)
-        self.reset_odometry(pose)
-        self._gyro.zeroYaw()
+    def set_alliance_offset(self) -> None:
+        if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+            self._gyro.setAngleAdjustment(180)
+        else:
+            self._gyro.setAngleAdjustment(0)
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
