@@ -43,7 +43,6 @@ from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.commands import FollowPathRamsete
 from pathplannerlib.config import ReplanningConfig, PIDConstants
 
-from ccwnavx import CCWNavx
 import constants
 
 
