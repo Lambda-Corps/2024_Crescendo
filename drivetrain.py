@@ -43,6 +43,7 @@ from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.commands import FollowPathRamsete
 from pathplannerlib.config import ReplanningConfig, PIDConstants
 
+from ccwnavx import CCWNavx
 import constants
 
 
@@ -50,7 +51,6 @@ class DriveTrain(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
-        SmartDashboard.putData("Navx", self._gyro)
 
         # Create the output objects for the talons, currently one each for
         # the following modes: VoltageOut, PercentOutput, and MotionMagic
@@ -78,10 +78,15 @@ class DriveTrain(Subsystem):
         self._field = Field2d()
         SmartDashboard.putData("MyField", self._field)
 
+        SmartDashboard.putData("Navx", self._gyro)
+
+        # TODO Remove this for competition
+        SmartDashboard.putNumber("ClampSpeed", 0.3)
+
     def __configure_simulation(self) -> None:
-        self._sim_gyro = self._gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
+        self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self._sim_gyro.getDouble("Yaw")
-        self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
+        # self.navx_comp = self._sim_gyro.getDouble("CompassHeading")
 
         self._system = LinearSystemId.identifyDrivetrainSystem(1.98, 0.2, 1.5, 0.3)
         self._drivesim = wpilib.simulation.DifferentialDrivetrainSim(
@@ -144,7 +149,7 @@ class DriveTrain(Subsystem):
 
     def __configure_left_side_drive(self) -> None:
         self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
-        # self._left_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
+        self._left_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
         # Applying a new configuration will erase all other config settings since we start with a blank config
         # so each setting needs to be explicitly set here in the config method
         config = TalonFXConfiguration()
@@ -163,7 +168,7 @@ class DriveTrain(Subsystem):
 
         # Apply the configuration to the motors
         self._left_leader.configurator.apply(config)
-        # self._left_follower.configurator.apply(config)
+        self._left_follower.configurator.apply(config)
 
         # self._left_follower.set_control(Follower(self._left_leader.device_id, False))
         self._left_leader.sim_state.Orientation = ChassisReference.Clockwise_Positive
@@ -171,9 +176,15 @@ class DriveTrain(Subsystem):
         #     ChassisReference.Clockwise_Positive
         # )
 
+        # Set the left follower to only follow master
+        follow_request = Follower(constants.DT_LEFT_LEADER, False)
+        self._left_follower.set_control(follow_request)
+
+        self._left_leader.set_position(0)
+
     def __configure_right_side_drive(self) -> None:
         self._right_leader = TalonFX(constants.DT_RIGHT_LEADER)
-        # self._right_follower = TalonFX(constants.DT_LEFT_FOLLOWER)
+        self._right_follower = TalonFX(constants.DT_RIGHT_FOLLOWER)
         # Applying a new configuration will erase all other config settings since we start with a blank config
         # so each setting needs to be explicitly set here in the config method
         config = TalonFXConfiguration()
@@ -191,7 +202,8 @@ class DriveTrain(Subsystem):
         config.feedback.sensor_to_mechanism_ratio = constants.DT_GEAR_RATIO
         # Apply the configuration to the motors
         self._right_leader.configurator.apply(config)
-        # self._right_follower.configurator.apply(config)
+
+        self._right_follower.configurator.apply(config)
 
         # self._right_follower.set_control(Follower(self._right_leader.device_id, False))
         self._right_leader.sim_state.Orientation = (
@@ -199,9 +211,19 @@ class DriveTrain(Subsystem):
         )
         # self._right_follower.sim_state.Orientation = ChassisReference.CounterClockwise_Positive
 
+        # Set the right side follower to go with leader
+        follow_request = Follower(constants.DT_RIGHT_LEADER, False)
+        self._right_follower.set_control(follow_request)
+
+        self._right_leader.set_position(0)
+
     def drive_teleop(self, forward: float, turn: float) -> None:
         turn = self.__deadband(turn, 0.05)
         forward = self.__deadband(forward, 0.05)
+
+        clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 0.3)
+        turn = self.__clamp(turn, clamp_max)
+        forward = self.__clamp(forward, clamp_max)
 
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
@@ -227,15 +249,11 @@ class DriveTrain(Subsystem):
         self._left_volts_out.output = left
         self._right_volts_out.output = right
 
-        SmartDashboard.putNumber("LeftVolts", self._left_volts_out.output)
-        SmartDashboard.putNumber("RightVolts", self._right_volts_out.output)
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
     def driveSpeeds(self, speeds: ChassisSpeeds) -> None:
         speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
-        # if RobotBase.isSimulation():
-        #     speeds.left *= -1
         self.drive_volts(speeds.left, speeds.right)
 
     def __deadband(self, input: float, abs_min: float) -> float:
@@ -251,25 +269,35 @@ class DriveTrain(Subsystem):
 
         return input
 
+    def __clamp(self, input: float, abs_max: float) -> None:
+        if input < 0:
+            abs_max *= -1
+
+            if input < abs_max:
+                input = abs_max
+        elif input > 0 and input > abs_max:
+            input = abs_max
+
+        return input
+
     def periodic(self) -> None:
         SmartDashboard.putNumber("LeftEncoder", self._left_leader.get_position().value)
         SmartDashboard.putNumber(
             "RightEncoder", self._right_leader.get_position().value
         )
 
-        if RobotBase.isReal():
-            # This method will be called once per scheduler run
-            self._odometry.update(
-                self._gyro.getRotation2d(),
-                self.__rotations_to_meters(
-                    self._left_leader.get_position().value_as_double
-                ),
-                self.__rotations_to_meters(
-                    self._right_leader.get_position().value_as_double
-                ),
-            )
+        pose = self._odometry.update(
+            Rotation2d().fromDegrees(self.__get_gyro_heading()),
+            self.__rotations_to_meters(
+                self._left_leader.get_position().value_as_double
+            ),
+            self.__rotations_to_meters(
+                self._right_leader.get_position().value_as_double
+            ),
+        )
 
-        self._field.setRobotPose(self._odometry.getPose())
+        self._field.setRobotPose(pose)
+        SmartDashboard.putNumber("Gyro Angle", self.__get_gyro_heading())
 
     def simulationPeriodic(self) -> None:
         """
@@ -335,8 +363,11 @@ class DriveTrain(Subsystem):
 
         # Update the gyro simulation
         degrees = self._drivesim.getHeading().degrees()
-        self.navx_yaw.set(degrees)
-        self.navx_comp.set(degrees)
+
+        # The drive train simulator is CCW positive, and the Navx is not.  So when we set
+        # the Yaw value here, negate it to represent the real world Navx as well.
+        self.navx_yaw.set(-degrees)
+        # self.navx_comp.set(degrees)
 
     def configure_motion_magic(self, distance_in_inches: float) -> None:
         """
@@ -398,8 +429,7 @@ class DriveTrain(Subsystem):
         wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
 
     def __turn_with_pid(self) -> None:
-        curr_angle = self._gyro.getYaw()
-        wpilib.SmartDashboard.putNumber("Yaw", curr_angle)
+        curr_angle = self._gyro.getAngle()
 
         pidoutput = self._turn_pid_controller.calculate(curr_angle)
 
@@ -410,11 +440,7 @@ class DriveTrain(Subsystem):
             pidoutput = self._turn_kF
 
         wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
-
-        if RobotBase.isSimulation():
-            self.drive_teleop(pidoutput, 0)
-        else:
-            self.drive_teleop(0, pidoutput)
+        self.drive_teleop(0, pidoutput)
 
     def __at_turn_setpoint(self) -> bool:
         curr_angle = self._gyro.getYaw()
@@ -425,11 +451,19 @@ class DriveTrain(Subsystem):
 
         return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
 
-    def get_robot_pose(self) -> Pose2d:
-        if RobotBase.isSimulation():
-            return self._drivesim.getPose()
+    def __get_gyro_heading(self) -> float:
+        angle = math.fmod(-self._gyro.getAngle(), 360)
+
+        if angle < 0:
+            return angle if angle >= -180 else angle + 360
         else:
-            return self._odometry.getPose()
+            return angle if angle <= 180 else angle - 360
+
+    def __set_gyro_heading(self) -> None:
+        pass
+
+    def get_robot_pose(self) -> Pose2d:
+        return self._odometry.getPose()
 
     def get_wheel_speeds(self) -> ChassisSpeeds:
         diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
@@ -439,14 +473,28 @@ class DriveTrain(Subsystem):
         return self._kinematics.toChassisSpeeds(diff_speed)
 
     def __rps_to_mps(self, rotations: float) -> float:
-        return rotations * (math.pi * constants.DT_WHEEL_DIAMETER)
+        return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
     def reset_odometry(self, pose: Pose2d) -> None:
-        if RobotBase.isSimulation():
-            self._drivesim.setPose(pose)
-            self.navx_yaw.set(self._drivesim.getHeading().degrees())
+        self._odometry.resetPosition(
+            self._gyro.getRotation2d(),
+            0,
+            0,
+            pose,
+        )
+
+    def reset_angle_offset(self) -> None:
+        self._gyro.setAngleAdjustment(0)
+
+    def set_alliance_offset(self) -> None:
+        if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+            self._gyro.setAngleAdjustment(180)
         else:
-            self._odometry.resetPosition(self._gyro.getRotation2d(), 0, 0, pose)
+            self._gyro.setAngleAdjustment(0)
+
+    def reset_encoders(self) -> None:
+        self._left_leader.set_position(0)
+        self._right_leader.set_position(0)
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12

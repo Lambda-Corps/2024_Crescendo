@@ -8,6 +8,7 @@ from commands2 import (
     Command,
     PrintCommand,
     RunCommand,
+    cmd,
 )
 from commands2.button import CommandXboxController
 from wpimath.geometry import Pose2d
@@ -17,11 +18,12 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
-import drivetrain
-import intake
+from drivetrain import DriveTrain
+from intake import Intake, IntakeTestCommand
+from shooter import Shooter, ShooterTestCommand
+from robot_commands import ShootCommand
 import constants
 from typing import Tuple, List
-import shooter
 
 
 class MyRobot(TimedCommandRobot):
@@ -36,16 +38,21 @@ class MyRobot(TimedCommandRobot):
         dashboards
         """
         # Setup the operator interface (typically CommandXboxController)
-        self._driver_controller = CommandXboxController(0)
+        self._driver_controller = CommandXboxController(
+            constants.CONTROLLER_DRIVER_PORT
+        )
+        self._partner_controller = CommandXboxController(
+            constants.CONTROLLER_PARTNER_PORT
+        )
 
         # Instantiate any subystems
-        self._drivetrain: drivetrain.DriveTrain = drivetrain.DriveTrain()
+        self._drivetrain: DriveTrain = DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
-        self._intake: intake.Intake = intake.Intake()
+        self._intake: Intake = Intake()
         wpilib.SmartDashboard.putData("Intake", self._intake)
 
-        self._shooter: shooter.Shooter = shooter.Shooter()
+        self._shooter: Shooter = Shooter()
         wpilib.SmartDashboard.putData("Shooter", self._shooter)
 
         self.__configure_default_commands()
@@ -58,9 +65,34 @@ class MyRobot(TimedCommandRobot):
         self._current_pose = Pose2d()
 
     def __configure_button_bindings(self) -> None:
-        self._driver_controller.a().whileTrue(intake.IntakeTestCommand(self._intake))
+        # Driver controller controls first
+        self._driver_controller.a().whileTrue(IntakeTestCommand(self._intake))
 
-        self._driver_controller.b().whileTrue(shooter.ShooterTestCommand(self._shooter))
+        self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
+
+        # Partner controller controls
+        self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
+        self._partner_controller.b().onTrue(
+            cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter)
+        )
+        # self._partner_controller.x().onTrue(
+        #     cmd.run(  # Subsystem "do stuff", basically execute
+        #         lambda: self._intake.drive_index(), self._intake
+        #     )
+        #     .until(  # Subsystem "stop", what would be in isFinished()
+        #         self._intake.has_note
+        #     )  # Give it a name so we see what command is running
+        #     .andThen(lambda: self._intake.stop_indexer(), self._intake)
+        #     .withName("IntakeNote")
+        # )
+        self._partner_controller.x().onTrue(IntakeTestCommand(self._intake))
+
+        self._partner_controller.y().onTrue(
+            # Stop all indexer motors
+            cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
+                "StopIndexer"
+            )
+        )
 
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
@@ -93,6 +125,15 @@ class MyRobot(TimedCommandRobot):
                     self._drivetrain,
                 ).withName("DefaultDrive")
             )
+
+        self._shooter.setDefaultCommand(
+            RunCommand(
+                lambda: self._shooter.drive_shooter_ramp(
+                    -self._partner_controller.getLeftY()
+                ),
+                self._shooter,
+            ).withName("ShooterDefault")
+        )
 
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
@@ -127,13 +168,14 @@ class MyRobot(TimedCommandRobot):
             # [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
             # [2.5, 5.0, 10.0],
-            [-5, 5],  # <-- R elements
+            # current [-5, 5],  # <-- R elements
+            [-0.5, 0.5],
             # [-10, 10],
             # [-11, 11],
             # [-12, 12],
             0.02,
             ReplanningConfig(
-                False, False, 1, 0.25
+                False, False
             ),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
@@ -147,6 +189,27 @@ class MyRobot(TimedCommandRobot):
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
         self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
+        self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
+        self._auto_chooser.addOption("Sub 1 - Two Ring", PathPlannerAuto("TwoRingSub1"))
+        self._auto_chooser.addOption(
+            "Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long")
+        )
+        self._auto_chooser.addOption(
+            "Turn Left",
+            RunCommand(
+                lambda: self._drivetrain.drive_volts(-0.2, 0.2), self._drivetrain
+            )
+            .withTimeout(3)
+            .withName("Turn Left 3"),
+        )
+        self._auto_chooser.addOption(
+            "Turn Right",
+            RunCommand(
+                lambda: self._drivetrain.drive_volts(0.2, -0.2), self._drivetrain
+            )
+            .withTimeout(3)
+            .withName("Turn Right 3"),
+        )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
@@ -161,6 +224,11 @@ class MyRobot(TimedCommandRobot):
         CommandScheduler.getInstance().cancelAll()
 
     def autonomousInit(self) -> None:
+        # If we're starting on the blue side, offset the Navx angle by 180
+        # so 0 degrees points to the right for NWU
+        self._drivetrain.set_alliance_offset()
+        self._drivetrain.reset_encoders()
+
         self._auto_command = self.getAutonomousCommand()
 
         if self._auto_command is not None:
@@ -177,13 +245,3 @@ class MyRobot(TimedCommandRobot):
 
     def teleopPeriodic(self) -> None:
         return super().teleopPeriodic()
-
-    def get_starting_pose(self) -> Pose2d:
-        return Pose2d(1.34, 5.55, math.pi)
-
-    def save_pose(self, pose: Pose2d) -> None:
-        if RobotBase.isSimulation():
-            self._current_pose = pose
-
-    def get_saved_pose(self) -> Pose2d:
-        return self._current_pose
