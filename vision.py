@@ -9,27 +9,9 @@ from photonlibpy.photonCamera import (
 from photonlibpy.photonTrackedTarget import PhotonTrackedTarget
 from robotpy_apriltag import AprilTagFieldLayout
 from wpilib import RobotBase
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import os
-
-
-class VisionSystem(Subsystem):
-    """
-    Class to manage the various cameras and their targeting on the Robot
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        # Value to track whether or not we've gotten good information from the camera
-        self._timeout_in_seconds = 1
-
-        if RobotBase.isReal():
-            self._pcamera = AprilTagPhotonCamera("test", Pose3d())
-
-    def periodic(self) -> None:
-        return super().periodic()
 
 
 class CameraPoseEstimate:
@@ -37,10 +19,52 @@ class CameraPoseEstimate:
         self._timestamp: float = obs_time
         self._estimate: Pose2d = Pose2d
 
+
 class TagMetaData:
     def __init__(self, id: int, yaw: float):
         self._id = id
         self._yaw = yaw
+
+
+class VisionSystem(Subsystem):
+    """
+    Class to manage the various cameras and their targeting on the Robot
+    """
+
+    def __init__(self, init_april_tag: bool, init_note_detection: bool) -> None:
+        super().__init__()
+
+        # Value to track whether or not we've gotten good information from the camera
+        self._timeout_in_seconds = 1
+
+        # Intialize cameras to None and instantiate them if they should be used
+        self._tag_camera = self._note_camera = None
+        if init_april_tag:
+            self._tag_camera = AprilTagPhotonCamera("TagCamera", Pose3d())
+
+        if init_note_detection:
+            self._note_camera = NoteDetectionPhotonCamera("NoteCamera")
+
+    def periodic(self) -> None:
+        if RobotBase.isSimulation():
+            # Don't do anything in sim
+            return
+
+        # Update the camera results
+        self._tag_camera.update_camera_results()
+
+        self._note_camera.update_camera_results()
+
+    def get_note_yaw(self) -> float:
+        if self._note_camera is not None:
+            return self._note_camera.get_note_yaw()
+
+    def get_pose_estimates(self) -> List[CameraPoseEstimate]:
+        if self._tag_camera is not None:
+            return self._tag_camera.get_pose_estimates()
+
+    def get_tag_metadata(self, tag_id: int) -> Optional[TagMetaData]:
+        return self._tag_camera._tag_metadatas[tag_id]
 
 
 class AprilTagPhotonCamera:
@@ -100,7 +124,9 @@ class AprilTagPhotonCamera:
                         )
                     )
 
-                    self._tag_metadatas[target_ID] = TagMetaData(target_ID, target.getYaw)
+                    self._tag_metadatas[target_ID] = TagMetaData(
+                        target_ID, target.getYaw
+                    )
 
                     # Now with a candidate list, filter for the best results
                     filtered_candidates: List[Pose2d] = []
@@ -146,8 +172,37 @@ class AprilTagPhotonCamera:
         y_in_field: bool = 0.0 <= y <= feetToMeters(27)
 
         return x_in_field and y_in_field
-    
+
 
 class NoteDetectionPhotonCamera:
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        setVersionCheckEnabled(False)
 
+        self._camera: PhotonCamera = PhotonCamera(name)
+
+        self._latest_result: PhotonPipelineResult = PhotonPipelineResult()
+
+    def update_camera_results(self) -> None:
+        self._latest_result: PhotonPipelineResult = self._camera.getLatestResult()
+
+    def get_note_yaw(self) -> float:
+        """
+        Return a float value of the target yaw
+        """
+        target_list: List[PhotonTrackedTarget] = self._latest_result.getTargets()
+
+        # If there are no current results, return -100 to signify no target
+        if len(target_list) == 0:
+            # we have no targets
+            return -100
+
+        largest_target = PhotonTrackedTarget()
+        # Iterate through each target and grab the largest area,
+        # which hopefully means we're looking at the closest target
+        for target in target_list:
+            if target.getArea() > largest_target.getArea():
+                # This one is bigger
+                largest_target = target
+
+        # Return the yaw from the target
+        return largest_target.getYaw()
