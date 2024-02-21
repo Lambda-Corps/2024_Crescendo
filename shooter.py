@@ -30,11 +30,6 @@ class Shooter(Subsystem):
         self._shooter_ramp: TalonSRX = self.__configure_shooter_ramp()
         self._shooter_ramp_angle: DutyCycleEncoder = self.__configure_ramp_encoder()
 
-        self._indexleft = TalonSRX(constants.INDEX_LEFT)
-        self._indexleft.configFactoryDefault()
-        self._indexright = TalonSRX(constants.INDEX_RIGHT)
-        self._indexright.configFactoryDefault()
-
         SmartDashboard.putNumber("ShooterRPS", self.SPEAKER_RPS)
         SmartDashboard.putNumber("ShooterPercent", 0.5)
 
@@ -60,7 +55,7 @@ class Shooter(Subsystem):
         # Perform any other configuration
         config: TalonFXConfiguration = TalonFXConfiguration()
         config.slot0.k_s = 0.15  # Measured .15 volts to overcome static friction
-        config.slot0.k_v = 0.19  # Measured .19 for 1ps
+        config.slot0.k_v = 0.11  # Measured .19 for 1ps
         config.slot0.k_a = 0.01  # complete guess, not measured
         config.slot0.k_p = (
             0.18  # an error of 1 RPS should add almost .19 more to correct
@@ -68,8 +63,14 @@ class Shooter(Subsystem):
         config.slot0.k_i = 0
         config.slot0.k_d = 0
 
+        config.motor_output.neutral_mode = NeutralModeValue.COAST
+
         # Set neutral mode to coast
         talon.configurator.apply(config)
+
+        # Setup the second set of flywheels with the SRX motors
+        self._lowerleft = TalonSRX(constants.INDEX_LEFT)
+        self._lowerleft.configFactoryDefault()
 
         return talon
 
@@ -81,12 +82,17 @@ class Shooter(Subsystem):
         # correct orientation, so for our right side configuration just needs to
         # follow, but oppose the leader and it will give us the spin we want.
         talon = TalonFX(constants.FLYWHEEL_RIGHT)
-
-        # Neutral mode to coast
+        config: TalonFXConfiguration = TalonFXConfiguration()
+        config.motor_output.neutral_mode = NeutralModeValue.COAST
+        talon.configurator.apply(config)
 
         talon.set_control(
             Follower(constants.FLYWHEEL_LEFT, oppose_master_direction=True)
         )
+
+        # Setup the second set of flywheels
+        self.lowerright = TalonSRX(constants.INDEX_RIGHT)
+        self.lowerright.configFactoryDefault()
 
         return talon
 
@@ -107,14 +113,14 @@ class Shooter(Subsystem):
         speed_775: float = SmartDashboard.getNumber("ShooterPercent", 0)
         self._motor_output.velocity = self._motor_rps
         self._shooter_left.set_control(self._motor_output)
-        self._indexleft.set(ControlMode.PercentOutput, speed_775)
-        self._indexright.set(ControlMode.PercentOutput, speed_775)
+        self._lowerleft.set(ControlMode.PercentOutput, speed_775)
+        self.lowerright.set(ControlMode.PercentOutput, speed_775)
 
     def stop_motors(self) -> None:
         self._motor_output.velocity = 0
         self._shooter_left.set_control(self._motor_output)
-        self._indexleft.set(ControlMode.PercentOutput, 0)
-        self._indexright.set(ControlMode.PercentOutput, 0)
+        self._lowerleft.set(ControlMode.PercentOutput, 0)
+        self.lowerright.set(ControlMode.PercentOutput, 0)
 
     def periodic(self) -> None:
         SmartDashboard.putNumber(
@@ -174,7 +180,7 @@ class Shooter(Subsystem):
 
     def __radianspersec_to_rotationspersec(self, rad_per_sec: float) -> float:
         # One radian per second equates to 0.0159154943, use that
-        return rad_per_sec * 0.0159154943
+        return rad_per_sec * 0.159154943
 
 
 class ShooterTestCommand(Command):

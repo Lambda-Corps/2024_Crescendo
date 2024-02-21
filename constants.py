@@ -34,7 +34,7 @@ ROBOT_WIDTH = 29 + (ROBOT_BUMPER_WIDTH * 2)
 ROBOT_LENGTH = 26 + (ROBOT_BUMPER_WIDTH * 2)
 
 # These should be tuned
-SHOOTER_KV = 0.18  # Volts * seconds/m
+SHOOTER_KV = 0.11  # Volts * seconds/m
 SHOOTER_KA = 0.40  # Volts * seconds^2/m
 SHOOTER_KS = 0.1
 SHOOTER_GEARING = 1.0  # No reduction
