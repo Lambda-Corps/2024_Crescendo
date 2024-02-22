@@ -11,7 +11,7 @@ class Intake(Subsystem):
     Test class for shooter prototype
     """
 
-    DETECTION_VOLTS_LOWER_BOUND = 0.7
+    DETECTION_VOLTS_LOWER_BOUND = 1.5
     DETECTION_VOLTS_UPPER_BOUND = 4.0
     BACKUP_NOTE_SPEED = -0.2
 
@@ -23,7 +23,8 @@ class Intake(Subsystem):
         self._indexroller = TalonSRX(constants.INDEX_ROLLER)
         self._indexroller.configFactoryDefault()
 
-        SmartDashboard.putNumber("IntakeSpeed", 0.3)
+        SmartDashboard.putNumber("IntakeSpeed", 0.8)
+        SmartDashboard.putNumber("IndexSpeed", 0.5)
 
         self._detector: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK)
 
@@ -32,18 +33,14 @@ class Intake(Subsystem):
             self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
     def drive_index(self, shooting=False):
-        index = intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
+        index_speed = SmartDashboard.getNumber("IndexSpeed", 0)
+        intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
         if shooting:
-            index *= 1.5
-        # def drive_index(self, speed: float):
-        # self._indexleft.set(TalonSRXControlMode.PercentOutput, speed)
-        # self._indexright.set(TalonSRXControlMode.PercentOutput, speed)
-        self._indexroller.set(TalonSRXControlMode.PercentOutput, index)
+            index = 1.0
+        self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
 
     def stop_indexer(self) -> None:
-        # self._indexleft.set(TalonSRXControlMode.PercentOutput, 0)
-        # self._indexright.set(TalonSRXControlMode.PercentOutput, 0)
         self._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, 0)
 
@@ -74,7 +71,7 @@ class Intake(Subsystem):
             self._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
 
 
-class IntakeTestCommand(Command):
+class IntakeCommand(Command):
     """
     Command to run motors of the shooter with a button press
     """

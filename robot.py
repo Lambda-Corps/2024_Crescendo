@@ -19,9 +19,10 @@ from pathplannerlib.auto import (
     ReplanningConfig,
 )
 from drivetrain import DriveTrain
-from intake import Intake, IntakeTestCommand
+from intake import Intake, IntakeCommand
 from shooter import Shooter, ShooterTestCommand
 from robot_commands import ShootCommand
+from leds import LEDSubsystem
 import constants
 from typing import Tuple, List
 
@@ -55,6 +56,8 @@ class MyRobot(TimedCommandRobot):
         self._shooter: Shooter = Shooter()
         wpilib.SmartDashboard.putData("Shooter", self._shooter)
 
+        self._leds: LEDSubsystem = LEDSubsystem()
+
         self.__configure_default_commands()
 
         self.__configure_button_bindings()
@@ -66,7 +69,7 @@ class MyRobot(TimedCommandRobot):
 
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
-        self._driver_controller.a().whileTrue(IntakeTestCommand(self._intake))
+        self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
 
@@ -85,7 +88,7 @@ class MyRobot(TimedCommandRobot):
         #     .andThen(lambda: self._intake.stop_indexer(), self._intake)
         #     .withName("IntakeNote")
         # )
-        self._partner_controller.x().onTrue(IntakeTestCommand(self._intake))
+        self._partner_controller.x().onTrue(IntakeCommand(self._intake))
 
         self._partner_controller.y().onTrue(
             # Stop all indexer motors

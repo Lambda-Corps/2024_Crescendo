@@ -1,5 +1,5 @@
 import math
-
+from commands2.button import CommandXboxController
 import wpilib.drive
 from wpilib import RobotBase, DriverStation
 import wpilib.simulation
@@ -43,6 +43,7 @@ from pathplannerlib.path import PathPlannerPath
 from pathplannerlib.commands import FollowPathRamsete
 from pathplannerlib.config import ReplanningConfig, PIDConstants
 
+from typing import Callable
 import constants
 
 
@@ -318,12 +319,12 @@ class DriveTrain(Subsystem):
         self._right_leader.sim_state.set_supply_voltage(
             wpilib.RobotController.getBatteryVoltage()
         )
-        # self._l_follow_motor.set_supply_voltage(
-        #     wpilib.RobotController.getBatteryVoltage()
-        # )
-        # self._r_follow_motor.set_supply_voltage(
-        #     wpilib.RobotController.getBatteryVoltage()
-        # )
+        self._left_follower.sim_state.set_supply_voltage(
+            wpilib.RobotController.getBatteryVoltage()
+        )
+        self._right_follower.sim_state.set_supply_voltage(
+            wpilib.RobotController.getBatteryVoltage()
+        )
 
         # Apply the motor inputs to the simulation
         self._drivesim.setInputs(
@@ -347,18 +348,18 @@ class DriveTrain(Subsystem):
         self._right_leader.sim_state.set_rotor_velocity(
             self.__velocity_feet_to_rps(self._drivesim.getRightVelocityFps())
         )
-        # self._l_follow_motor.set_raw_rotor_position(
-        #     self.__feet_to_encoder_ticks(self._drivesim.getLeftPositionFeet())
-        # )
-        # self._l_follow_motor.set_rotor_velocity(
-        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getLeftVelocityFps())
-        # )
-        # self._r_follow_motor.set_raw_rotor_position(
-        #     self.__feet_to_encoder_ticks(self._drivesim.getRightPositionFeet())
-        # )
-        # self._r_follow_motor.set_rotor_velocity(
-        #     self.__velocity_feet_to_talon_ticks(self._drivesim.getRightVelocityFps())
-        # )
+        self._left_follower.sim_state.set_raw_rotor_position(
+            self.__feet_to_encoder_rotations(self._drivesim.getLeftPositionFeet())
+        )
+        self._left_follower.sim_state.set_rotor_velocity(
+            self.__velocity_feet_to_rps(self._drivesim.getLeftVelocityFps())
+        )
+        self._right_follower.sim_state.set_raw_rotor_position(
+            self.__feet_to_encoder_rotations(self._drivesim.getRightPositionFeet())
+        )
+        self._right_follower.sim_state.set_rotor_velocity(
+            self.__velocity_feet_to_rps(self._drivesim.getRightVelocityFps())
+        )
 
         # Update the gyro simulation
         degrees = self._drivesim.getHeading().degrees()
@@ -482,18 +483,11 @@ class DriveTrain(Subsystem):
             pose,
         )
 
-    def reset_angle_offset(self) -> None:
-        self._gyro.setAngleAdjustment(0)
-
     def set_alliance_offset(self) -> None:
         if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
             self._gyro.setAngleAdjustment(180)
         else:
             self._gyro.setAngleAdjustment(0)
-
-    def reset_encoders(self) -> None:
-        self._left_leader.set_position(0)
-        self._right_leader.set_position(0)
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
@@ -521,23 +515,23 @@ class DriveTrain(Subsystem):
     def __rotations_to_meters(self, rotations: float) -> float:
         return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
-    def follow_path_command(self, pathname: str) -> Command:
-        path: PathPlannerPath = PathPlannerPath.fromPathFile(pathname)
-        ramsete_cmd = FollowPathRamsete(
-            path,
-            self.get_robot_pose,  # Robot pose supplier
-            self.get_wheel_speeds,  # Current ChassisSpeeds supplier
-            self.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            ReplanningConfig(),  # Default path replanning config. See the API for the options here
-            self.should_flip_path,  # Flip if we're on the red side
-            self,  # this drivetrain (for requirements)
-        )
+    # def follow_path_command(self, pathname: str) -> Command:
+    #     path: PathPlannerPath = PathPlannerPath.fromPathFile(pathname)
+    #     ramsete_cmd = FollowPathRamsete(
+    #         path,
+    #         self.get_robot_pose,  # Robot pose supplier
+    #         self.get_wheel_speeds,  # Current ChassisSpeeds supplier
+    #         self.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
+    #         ReplanningConfig(),  # Default path replanning config. See the API for the options here
+    #         self.should_flip_path,  # Flip if we're on the red side
+    #         self,  # this drivetrain (for requirements)
+    #     )
 
-        return (
-            cmd.runOnce(lambda: self.reset_odometry(path.getStartingDifferentialPose()))
-            .andThen(ramsete_cmd)
-            .andThen(cmd.runOnce(lambda: self.drive_volts(0, 0)))
-        )
+    #     return (
+    #         cmd.runOnce(lambda: self.reset_odometry(path.getStartingDifferentialPose()))
+    #         .andThen(ramsete_cmd)
+    #         .andThen(cmd.runOnce(lambda: self.drive_volts(0, 0)))
+    #     )
 
     def should_flip_path(self) -> bool:
         # Boolean supplier that controls when the path will be mirrored for the red alliance
@@ -567,3 +561,34 @@ class DriveMMInches(Command):
 
     def end(self, interrupted: bool):
         self._dt.drive_volts(0, 0)
+
+
+class DriveWithNoteVision(Command):
+    def __init__(
+        self,
+        dt: DriveTrain,
+        note_yaw_getter: Callable[[], float],
+        controller: CommandXboxController,
+    ):
+        super()._init_()
+
+        self._dt = dt
+        self._note_yaw_getter = note_yaw_getter
+        self._controller = controller
+
+        self.addRequirements(self._dt)
+
+    def initialize(self):
+        return super().initialize()
+
+    def execute(self):
+        forward = self._controller.getLeftY()
+        note_yaw = self._note_yaw_getter()
+
+        self._dt.drive_teleop(forward, note_yaw)
+
+    def isFinished(self) -> bool:
+        return False
+
+    def end(self, interrupted: bool):
+        pass

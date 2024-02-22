@@ -38,12 +38,15 @@ class VisionSystem(Subsystem):
         self._timeout_in_seconds = 1
 
         # Intialize cameras to None and instantiate them if they should be used
-        self._tag_camera = self._note_camera = None
-        if init_april_tag:
-            self._tag_camera = AprilTagPhotonCamera("TagCamera", Pose3d())
+        if RobotBase.isSimulation():
+            pass
+        else:
+            self._tag_camera = self._note_camera = None
+            if init_april_tag:
+                self._tag_camera = AprilTagPhotonCamera("TagCamera", Pose3d())
 
-        if init_note_detection:
-            self._note_camera = NoteDetectionPhotonCamera("NoteCamera")
+            if init_note_detection:
+                self._note_camera = NoteDetectionPhotonCamera("NoteCamera")
 
     def periodic(self) -> None:
         if RobotBase.isSimulation():
@@ -51,9 +54,11 @@ class VisionSystem(Subsystem):
             return
 
         # Update the camera results
-        self._tag_camera.update_camera_results()
+        if self._note_camera is not None:
+            self._tag_camera.update_camera_results()
 
-        self._note_camera.update_camera_results()
+        if self._tag_camera is not None:
+            self._note_camera.update_camera_results()
 
     def get_note_yaw(self) -> float:
         if self._note_camera is not None:
@@ -183,7 +188,9 @@ class NoteDetectionPhotonCamera:
         self._latest_result: PhotonPipelineResult = PhotonPipelineResult()
 
     def update_camera_results(self) -> None:
-        self._latest_result: PhotonPipelineResult = self._camera.getLatestResult()
+        result: PhotonPipelineResult = self._camera.getLatestResult()
+        if result is not None:
+            self._latest_result: PhotonPipelineResult = self._camera.getLatestResult()
 
     def get_note_yaw(self) -> float:
         """
