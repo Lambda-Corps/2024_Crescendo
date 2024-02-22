@@ -21,6 +21,7 @@ from pathplannerlib.auto import (
 from drivetrain import DriveTrain
 from intake import Intake, IntakeTestCommand
 from shooter import Shooter, ShooterTestCommand
+from leds import LEDSubsystem
 from robot_commands import ShootCommand
 import constants
 from typing import Tuple, List
@@ -54,6 +55,8 @@ class MyRobot(TimedCommandRobot):
 
         self._shooter: Shooter = Shooter()
         wpilib.SmartDashboard.putData("Shooter", self._shooter)
+
+        self._leds:  LEDSubsystem = LEDSubsystem()
 
         self.__configure_default_commands()
 
