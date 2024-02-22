@@ -483,6 +483,16 @@ class DriveTrain(Subsystem):
             pose,
         )
 
+    def reset_encoders(self) -> None:
+        self._left_leader.set_position(0)
+        self._right_leader.set_position(0)
+
+    def reset_drivetrain(self) -> None:
+        self._gyro.setAngleAdjustment(0)
+        self._gyro.reset()
+
+        self.reset_encoders()
+
     def set_alliance_offset(self) -> None:
         if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
             self._gyro.setAngleAdjustment(180)

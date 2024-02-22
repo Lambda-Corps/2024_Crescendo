@@ -67,6 +67,12 @@ class MyRobot(TimedCommandRobot):
         self._auto_command = None
         self._current_pose = Pose2d()
 
+        # TODO Remove the reset command
+        wpilib.SmartDashboard.putData(
+            "Reset DT",
+            cmd.runOnce(lambda: self._drivetrain.reset_drivetrain(), self._drivetrain),
+        )
+
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
