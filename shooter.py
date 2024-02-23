@@ -146,7 +146,8 @@ class Shooter(Subsystem):
             )
 
     def set_shooter_speed(self, speed: float) -> None:
-        self._motor_rps = speed
+
+        self._motor_rps = SmartDashboard.getNumber("ShooterRPS", 0)
 
     def run_shooter(self) -> Command:
         return RunCommand(lambda: self.drive_motors(), self)

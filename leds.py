@@ -60,12 +60,12 @@ class LEDSubsystem(Subsystem):
                 self._counter = -1
             self._counter = self._counter + 1
 
-        # if self._set_counter < (self._number_of_sets * 50):
-        #     self._set_counter = self._set_counter + 1
-        # else:
-        #     self.setRightSideRGB(255, 255, 0)  #  Yellow - Using RGB
-        #     self.setLeftSideRGB(255, 255, 0)  # Yellow - Using RGB
-        #     self.setLauncherRunwayLights()  # Turn on runway lights
+        if self._set_counter < (self._number_of_sets * 50):
+            self._set_counter = self._set_counter + 1
+        else:
+            self.setRightSideRGB(255, 255, 0)  #  Yellow - Using RGB
+            self.setLeftSideRGB(255, 255, 0)  # Yellow - Using RGB
+            self.setLauncherRunwayLights()  # Turn on runway lights
 
         # Set the LEDs
         self.led.setData(self.ledData)

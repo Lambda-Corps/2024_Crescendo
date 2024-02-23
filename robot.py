@@ -73,11 +73,25 @@ class MyRobot(TimedCommandRobot):
             cmd.runOnce(lambda: self._drivetrain.reset_drivetrain(), self._drivetrain),
         )
 
+        self._partner_controller.rightStick(
+            cmd.runOnce(lambda: self._shooter.set_shooter_speed(), self._shooter)
+        )
+
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
+
+        self._driver_controller.rightTrigger().whileTrue(
+            RunCommand(
+                lambda: self._drivetrain.drive_teleop(
+                    self._driver_controller.getLeftY(),
+                    -self._driver_controller.getRightX(),
+                ),
+                self._drivetrain,
+            ).withName("FlippedControls")
+        )
 
         # Partner controller controls
         self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
