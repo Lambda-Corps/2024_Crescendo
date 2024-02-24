@@ -8,6 +8,7 @@ from commands2 import (
     Command,
     PrintCommand,
     RunCommand,
+    WaitCommand,
     cmd,
 )
 from commands2.button import CommandXboxController
@@ -165,11 +166,11 @@ class MyRobot(TimedCommandRobot):
         # These commands have to match exactly in the PathPlanner application
         # as we name them here in the registration
         NamedCommands.registerCommand(
-            "ShootSub", PrintCommand("Shoot Note into Speaker")
+            "AutoShoot", ShootCommand(self._intake, self._shooter)
         )
-        NamedCommands.registerCommand("StartIntake", PrintCommand("StartIntake"))
         NamedCommands.registerCommand(
-            "FeedShooter", PrintCommand("Move Note into Shooter")
+            "AutoIntake_tm2",
+            IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 2"),
         )
 
         # increasing Qelems numbers, tries to drive more conservatively as the effect
@@ -187,21 +188,22 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            # [0.0625, 0.125, 2.5],  # <-- Q Elements
-            [0.075, 0.15, 3.1],
+            [0.0625, 0.125, 2.5],  # <-- Q Elements
+            # [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
             # [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
             # [2.5, 5.0, 10.0],
             # current [-5, 5],  # <-- R elements
-            [-0.5, 0.5],
-            # [-10, 10],
+            # [-0.5, 0.5],
+            [-10, 10],
             # [-11, 11],
             # [-12, 12],
             0.02,
-            ReplanningConfig(
-                False, False
-            ),  # Default path replanning config. See the API for the options here
+            # ReplanningConfig(
+            #     False, False
+            # ),
+            ReplanningConfig(),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
         )
@@ -213,27 +215,21 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.setDefaultOption(
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
-        self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
-        self._auto_chooser.addOption("Sub 1 - One Ring", PathPlannerAuto("OneRingSub1"))
-        self._auto_chooser.addOption("Sub 1 - Two Ring", PathPlannerAuto("TwoRingSub1"))
         self._auto_chooser.addOption(
-            "Sub 1 - Two Ring Long", PathPlannerAuto("TwoRingSub1Long")
-        )
-        self._auto_chooser.addOption(
-            "Turn Left",
+            "Turn .1",
             RunCommand(
-                lambda: self._drivetrain.drive_volts(-0.2, 0.2), self._drivetrain
+                lambda: self._drivetrain.drive_volts(-0.1, 0.1), self._drivetrain
             )
             .withTimeout(3)
-            .withName("Turn Left 3"),
+            .withName("Turn .1 3"),
         )
         self._auto_chooser.addOption(
-            "Turn Right",
+            "Turn .15",
             RunCommand(
-                lambda: self._drivetrain.drive_volts(0.2, -0.2), self._drivetrain
+                lambda: self._drivetrain.drive_volts(-0.15, 0.15), self._drivetrain
             )
             .withTimeout(3)
-            .withName("Turn Right 3"),
+            .withName("Turn .15 3"),
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)

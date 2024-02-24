@@ -17,6 +17,7 @@ from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
 from wpimath.filter import SlewRateLimiter
 from wpilib import SmartDashboard, Field2d
 from commands2 import Subsystem, Command, cmd, InstantCommand
+from phoenix6 import StatusCode
 from phoenix6.configs import (
     TalonFXConfiguration,
     TalonFXConfigurator,
@@ -179,9 +180,15 @@ class DriveTrain(Subsystem):
         self.__configure_motion_magic(config)
 
         # Apply the configuration to the motors
-        ret: stat
-        self._left_leader.configurator.apply(config)
-        self._left_follower.configurator.apply(config)
+        for i in range(0, 6):  # Try 5 times
+            ret = self._left_leader.configurator.apply(config)
+            if ret == StatusCode.is_ok:
+                break
+
+        for i in range(0, 6):  # Try 5 times
+            ret = self._left_follower.configurator.apply(config)
+            if ret == StatusCode.is_ok:
+                break
 
         # self._left_follower.set_control(Follower(self._left_leader.device_id, False))
         self._left_leader.sim_state.Orientation = ChassisReference.Clockwise_Positive
@@ -214,9 +221,15 @@ class DriveTrain(Subsystem):
 
         config.feedback.sensor_to_mechanism_ratio = constants.DT_GEAR_RATIO
         # Apply the configuration to the motors
-        self._right_leader.configurator.apply(config)
+        for i in range(0, 6):  # Try 5 times
+            ret = self._right_leader.configurator.apply(config)
+            if ret == StatusCode.is_ok:
+                break
 
-        self._right_follower.configurator.apply(config)
+        for i in range(0, 6):  # Try 5 times
+            ret = self._right_follower.configurator.apply(config)
+            if ret == StatusCode.is_ok:
+                break
 
         # self._right_follower.set_control(Follower(self._right_leader.device_id, False))
         self._right_leader.sim_state.Orientation = (
