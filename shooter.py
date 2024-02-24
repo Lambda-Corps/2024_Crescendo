@@ -22,6 +22,9 @@ class Shooter(Subsystem):
     """
 
     SPEAKER_RPS = 52  # measured with Tuner, putting motors at .55 (55%)
+    SHOOTER_MIN = 0.842
+    SPEAKER_FROM_RING2 = 0.858
+    SPEAKER_FROM_SUB = 0.880
 
     def __init__(self):
         super().__init__()
@@ -46,6 +49,8 @@ class Shooter(Subsystem):
             )
 
             self._sim_counter = 0
+
+        self._angle = 0
 
     def __configure_left_side(
         self,
@@ -155,6 +160,23 @@ class Shooter(Subsystem):
     def drive_shooter_ramp(self, speed: float) -> None:
         self._shooter_ramp.set(ControlMode.PercentOutput, speed)
 
+    def set_shooter_angle(self, angle: float) -> None:
+        speed = 0
+        self._angle = angle
+        if self._angle > self._shooter_ramp_angle.getAbsolutePosition():
+            speed = 1
+        else:
+            speed = -1
+        self._shooter_ramp.set(ControlMode.PercentOutput, speed)
+
+    def shooter_at_angle(self) -> bool:
+        curr_diff = self._shooter_ramp_angle.getAbsolutePosition() - self._angle
+
+        return abs(curr_diff) < 0.002
+
+    def stop_shooter_ramp(self) -> None:
+        self._shooter_ramp.set(ControlMode.PercentOutput, 0)
+
     def simulationPeriodic(self) -> None:
         feed_enable(constants.ROBOT_PERIOD_MS * 2)
 
@@ -208,3 +230,15 @@ class ShooterTestCommand(Command):
 
     def end(self, interrupted: bool):
         self._sub.stop_motors()
+
+
+class SetShooterRamp(Command):
+    def __init__(self, shooter: Shooter, angle: float):
+        self._angle = angle
+
+        self._shooter = shooter
+
+        self.addRequirements(self._shooter)
+
+    def initialize(self):
+        return super().initialize()
