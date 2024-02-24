@@ -14,6 +14,7 @@ from wpimath.kinematics import (
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.trajectory.constraint import DifferentialDriveVoltageConstraint
 from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
+from wpimath.filter import SlewRateLimiter
 from wpilib import SmartDashboard, Field2d
 from commands2 import Subsystem, Command, cmd, InstantCommand
 from phoenix6.configs import (
@@ -48,6 +49,10 @@ import constants
 
 
 class DriveTrain(Subsystem):
+    __DRIVER_DEADBAND = 0.1
+    __FORWARD_SLEW = 3  # 1/3 of a second to full speed
+    __CLAMP_SPEED = 1.0
+
     def __init__(self) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
@@ -80,8 +85,15 @@ class DriveTrain(Subsystem):
 
         SmartDashboard.putData("Navx", self._gyro)
 
+        self._forward_limiter: SlewRateLimiter = SlewRateLimiter(self.__FORWARD_SLEW)
+
         # TODO Remove this for competition
         SmartDashboard.putNumber("ClampSpeed", 0.3)
+        SmartDashboard.putNumber("Forward Slew", 0)
+        SmartDashboard.putData(
+            "Reset Slew", cmd.runOnce(lambda: self.reset_slew(), self)
+        )
+        # TODO End of remove
 
     def __configure_simulation(self) -> None:
         self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
@@ -167,6 +179,7 @@ class DriveTrain(Subsystem):
         self.__configure_motion_magic(config)
 
         # Apply the configuration to the motors
+        ret: stat
         self._left_leader.configurator.apply(config)
         self._left_follower.configurator.apply(config)
 
@@ -217,13 +230,46 @@ class DriveTrain(Subsystem):
 
         self._right_leader.set_position(0)
 
-    def drive_teleop(self, forward: float, turn: float) -> None:
-        turn = self.__deadband(turn, 0.05)
-        forward = self.__deadband(forward, 0.05)
+    def configure_motion_magic(self, distance_in_inches: float) -> None:
+        """
+        Method to configure the motors using a MotionMagic profile.
 
+        :param: distance_in_inches  Distance in inches to travel.
+        """
+        # The TalonFX configuration already sets up the SensorToMechanism ratio when
+        # it accounts for the position feedback.  So, when the talon.get_position()
+        # method is called, it returns the roations of the wheel's output shaft, not
+        # the input shaft of the gearbox.  So, if we were to use a setpoint of 1 (1 rotation)
+        # in the MotionMagic profile, it would try to turn the wheels 1 rotation, not
+        # the motor.
+
+        # Convert the distance in inches, to wheel rotations
+        #                          distance_in_inches
+        # wheel_rotations =   --------------------------
+        #                        Pi * Wheel Diameter
+        distance_in_rotations = distance_in_inches / (
+            math.pi * constants.DT_WHEEL_DIAMETER
+        )
+        curr_right = self._right_leader.get_position().value_as_double
+
+        self._mm_out.with_position(curr_right + distance_in_rotations).with_slot(0)
+
+    ########################### Drivetrain Drive methods #######################
+
+    def drive_teleop(self, forward: float, turn: float, percent_out=False):
+        forward = self.__deadband(forward, self.__DRIVER_DEADBAND)
+        turn = self.__deadband(turn, self.__DRIVER_DEADBAND)
+
+        forward = self._forward_limiter.calculate(forward)
+
+        # TODO -- Needs to be configured and set the __CLAMP_SPEED variable above
         clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 0.3)
         turn = self.__clamp(turn, clamp_max)
         forward = self.__clamp(forward, clamp_max)
+
+        self.__drive_teleop_volts(forward, turn)
+
+    def __drive_teleop_volts(self, forward: float, turn: float) -> None:
 
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
@@ -233,9 +279,7 @@ class DriveTrain(Subsystem):
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
-    def drive_percent_out(self, forward: float, turn: float) -> None:
-        turn = self.__deadband(turn, 0.05)
-        forward = self.__deadband(forward, 0.05)
+    def __drive_teleop_percent(self, forward: float, turn: float) -> None:
 
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
 
@@ -256,12 +300,34 @@ class DriveTrain(Subsystem):
         speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
         self.drive_volts(speeds.left, speeds.right)
 
-    def __deadband(self, input: float, abs_min: float) -> float:
-        """ """
-        if abs_min < 0:
-            abs_min *= -1
+    def drive_motion_magic(self) -> None:
+        self._left_leader.set_control(Follower(self._right_leader.device_id, False))
+        self._right_leader.set_control(self._mm_out)
 
-        if input < 0 and input > abs_min * -1:
+    def __turn_with_pid(self) -> None:
+        curr_angle = self._gyro.getAngle()
+
+        pidoutput = self._turn_pid_controller.calculate(curr_angle)
+
+        # Promote the value to at least the KF
+        if (pidoutput < 0) and (pidoutput > -self._turn_kF):
+            pidoutput = -self._turn_kF
+        elif (pidoutput > 0) and (pidoutput < self._turn_kF):
+            pidoutput = self._turn_kF
+
+        wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
+        self.drive_teleop(0, pidoutput)
+
+    ################## Drive train Helpers ##########################
+
+    def __deadband(self, input: float, abs_min: float) -> float:
+        """
+        If the value is between 0 and the abs_min value passed in,
+        return 0.
+
+        This eliminates joystick drift on input
+        """
+        if input < 0 and input > (abs_min * -1):
             input = 0
 
         if input > 0 and input < abs_min:
@@ -270,15 +336,87 @@ class DriveTrain(Subsystem):
         return input
 
     def __clamp(self, input: float, abs_max: float) -> None:
-        if input < 0:
-            abs_max *= -1
-
-            if input < abs_max:
-                input = abs_max
+        """
+        Set a max speed for a given input
+        """
+        if input < 0 and input < (abs_max * -1):
+            input = abs_max * -1
         elif input > 0 and input > abs_max:
             input = abs_max
 
         return input
+
+    def at_mm_setpoint(self) -> bool:
+        curr_right = self._right_leader.get_position().value
+
+        return abs(self._mm_out.position - curr_right) < self._mm_tolerance
+
+    def __config_turn_command(self, desired_angle: float) -> None:
+        self._turn_setpoint = desired_angle + self._gyro.getYaw()
+        self._turn_pid_controller.setSetpoint(self._turn_setpoint)
+        self._turn_pid_controller.setTolerance(self._turn_tolerance)
+        wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
+
+    def __at_turn_setpoint(self) -> bool:
+        curr_angle = self._gyro.getYaw()
+
+        wpilib.SmartDashboard.putBoolean(
+            "At Setpoint", self._turn_pid_controller.atSetpoint()
+        )
+
+        return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
+
+    def __get_gyro_heading(self) -> float:
+        angle = math.fmod(-self._gyro.getAngle(), 360)
+
+        if angle < 0:
+            return angle if angle >= -180 else angle + 360
+        else:
+            return angle if angle <= 180 else angle - 360
+
+    def __set_gyro_heading(self) -> None:
+        pass
+
+    def get_robot_pose(self) -> Pose2d:
+        return self._odometry.getPose()
+
+    def get_wheel_speeds(self) -> ChassisSpeeds:
+        diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
+            self.__rps_to_mps(self._left_leader.get_velocity().value_as_double),
+            self.__rps_to_mps(self._right_leader.get_velocity().value_as_double),
+        )
+        return self._kinematics.toChassisSpeeds(diff_speed)
+
+    def reset_odometry(self, pose: Pose2d) -> None:
+        self._odometry.resetPosition(
+            self._gyro.getRotation2d(),
+            0,
+            0,
+            pose,
+        )
+
+    def reset_encoders(self) -> None:
+        self._left_leader.set_position(0)
+        self._right_leader.set_position(0)
+
+    def reset_drivetrain(self) -> None:
+        self._gyro.setAngleAdjustment(0)
+        self._gyro.reset()
+
+        self.reset_encoders()
+
+    def set_alliance_offset(self) -> None:
+        if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+            self._gyro.setAngleAdjustment(180)
+        else:
+            self._gyro.setAngleAdjustment(0)
+
+    def reset_slew(self) -> None:
+        self._forward_limiter = SlewRateLimiter(
+            SmartDashboard.getNumber("Forward Slew", self.__FORWARD_SLEW)
+        )
+
+    ################### Periodic Updates for the Subsystems ######################
 
     def periodic(self) -> None:
         SmartDashboard.putNumber("LeftEncoder", self._left_leader.get_position().value)
@@ -369,135 +507,7 @@ class DriveTrain(Subsystem):
         self.navx_yaw.set(-degrees)
         # self.navx_comp.set(degrees)
 
-    def configure_motion_magic(self, distance_in_inches: float) -> None:
-        """
-        Method to configure the motors using a MotionMagic profile.
-
-        :param: distance_in_inches  Distance in inches to travel.
-        """
-        # The TalonFX configuration already sets up the SensorToMechanism ratio when
-        # it accounts for the position feedback.  So, when the talon.get_position()
-        # method is called, it returns the roations of the wheel's output shaft, not
-        # the input shaft of the gearbox.  So, if we were to use a setpoint of 1 (1 rotation)
-        # in the MotionMagic profile, it would try to turn the wheels 1 rotation, not
-        # the motor.
-
-        # Convert the distance in inches, to wheel rotations
-        #                          distance_in_inches
-        # wheel_rotations =   --------------------------
-        #                        Pi * Wheel Diameter
-        distance_in_rotations = distance_in_inches / (
-            math.pi * constants.DT_WHEEL_DIAMETER
-        )
-        curr_right = self._right_leader.get_position().value_as_double
-
-        self._mm_out.with_position(curr_right + distance_in_rotations).with_slot(0)
-
-    def drive_motion_magic(self) -> None:
-        self._left_leader.set_control(Follower(self._right_leader.device_id, False))
-        self._right_leader.set_control(self._mm_out)
-
-    def at_mm_setpoint(self) -> bool:
-        curr_right = self._right_leader.get_position().value
-
-        return abs(self._mm_out.position - curr_right) < self._mm_tolerance
-
-    def mm_drive_distance(self) -> Command:
-        return (
-            cmd.run(lambda: self.drive_motion_magic(), self)
-            .until(lambda: self.at_mm_setpoint())
-            .withName("DriveMM")
-        )
-
-    def mm_drive_config(self, distance_in_inches: float) -> Command:
-        return cmd.runOnce(lambda: self.configure_motion_magic(distance_in_inches))
-
-    def configure_turn_pid(self, desired_angle: float) -> Command:
-        return cmd.runOnce(lambda: self.__config_turn_command(desired_angle))
-
-    def turn_with_pid(self) -> Command:
-        return (
-            cmd.run(lambda: self.__turn_with_pid(), self)
-            .until(lambda: self.__at_turn_setpoint())
-            .withName("TurnWithPID")
-        )
-
-    def __config_turn_command(self, desired_angle: float) -> None:
-        self._turn_setpoint = desired_angle + self._gyro.getYaw()
-        self._turn_pid_controller.setSetpoint(self._turn_setpoint)
-        self._turn_pid_controller.setTolerance(self._turn_tolerance)
-        wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
-
-    def __turn_with_pid(self) -> None:
-        curr_angle = self._gyro.getAngle()
-
-        pidoutput = self._turn_pid_controller.calculate(curr_angle)
-
-        # Promote the value to at least the KF
-        if (pidoutput < 0) and (pidoutput > -self._turn_kF):
-            pidoutput = -self._turn_kF
-        elif (pidoutput > 0) and (pidoutput < self._turn_kF):
-            pidoutput = self._turn_kF
-
-        wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
-        self.drive_teleop(0, pidoutput)
-
-    def __at_turn_setpoint(self) -> bool:
-        curr_angle = self._gyro.getYaw()
-
-        wpilib.SmartDashboard.putBoolean(
-            "At Setpoint", self._turn_pid_controller.atSetpoint()
-        )
-
-        return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
-
-    def __get_gyro_heading(self) -> float:
-        angle = math.fmod(-self._gyro.getAngle(), 360)
-
-        if angle < 0:
-            return angle if angle >= -180 else angle + 360
-        else:
-            return angle if angle <= 180 else angle - 360
-
-    def __set_gyro_heading(self) -> None:
-        pass
-
-    def get_robot_pose(self) -> Pose2d:
-        return self._odometry.getPose()
-
-    def get_wheel_speeds(self) -> ChassisSpeeds:
-        diff_speed: DifferentialDriveWheelSpeeds = DifferentialDriveWheelSpeeds(
-            self.__rps_to_mps(self._left_leader.get_velocity().value_as_double),
-            self.__rps_to_mps(self._right_leader.get_velocity().value_as_double),
-        )
-        return self._kinematics.toChassisSpeeds(diff_speed)
-
-    def __rps_to_mps(self, rotations: float) -> float:
-        return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
-
-    def reset_odometry(self, pose: Pose2d) -> None:
-        self._odometry.resetPosition(
-            self._gyro.getRotation2d(),
-            0,
-            0,
-            pose,
-        )
-
-    def reset_encoders(self) -> None:
-        self._left_leader.set_position(0)
-        self._right_leader.set_position(0)
-
-    def reset_drivetrain(self) -> None:
-        self._gyro.setAngleAdjustment(0)
-        self._gyro.reset()
-
-        self.reset_encoders()
-
-    def set_alliance_offset(self) -> None:
-        if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
-            self._gyro.setAngleAdjustment(180)
-        else:
-            self._gyro.setAngleAdjustment(0)
+    ############# Drivetrain Odometry methods ###################
 
     def __feet_to_encoder_rotations(self, distance_in_feet: float) -> float:
         #                    feet * 12
@@ -525,29 +535,35 @@ class DriveTrain(Subsystem):
     def __rotations_to_meters(self, rotations: float) -> float:
         return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
 
-    # def follow_path_command(self, pathname: str) -> Command:
-    #     path: PathPlannerPath = PathPlannerPath.fromPathFile(pathname)
-    #     ramsete_cmd = FollowPathRamsete(
-    #         path,
-    #         self.get_robot_pose,  # Robot pose supplier
-    #         self.get_wheel_speeds,  # Current ChassisSpeeds supplier
-    #         self.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-    #         ReplanningConfig(),  # Default path replanning config. See the API for the options here
-    #         self.should_flip_path,  # Flip if we're on the red side
-    #         self,  # this drivetrain (for requirements)
-    #     )
-
-    #     return (
-    #         cmd.runOnce(lambda: self.reset_odometry(path.getStartingDifferentialPose()))
-    #         .andThen(ramsete_cmd)
-    #         .andThen(cmd.runOnce(lambda: self.drive_volts(0, 0)))
-    #     )
-
     def should_flip_path(self) -> bool:
         # Boolean supplier that controls when the path will be mirrored for the red alliance
         # This will flip the path being followed to the red side of the field.
         # THE ORIGIN WILL REMAIN ON THE BLUE SIDE
         return DriverStation.getAlliance() == DriverStation.Alliance.kRed
+
+    def __rps_to_mps(self, rotations: float) -> float:
+        return rotations * constants.DT_WHEEL_CIRCUMFERENCE_METERS
+
+    ################################# Drivetrain Command Methods ############################
+    def mm_drive_distance(self) -> Command:
+        return (
+            cmd.run(lambda: self.drive_motion_magic(), self)
+            .until(lambda: self.at_mm_setpoint())
+            .withName("DriveMM")
+        )
+
+    def mm_drive_config(self, distance_in_inches: float) -> Command:
+        return cmd.runOnce(lambda: self.configure_motion_magic(distance_in_inches))
+
+    def configure_turn_pid(self, desired_angle: float) -> Command:
+        return cmd.runOnce(lambda: self.__config_turn_command(desired_angle))
+
+    def turn_with_pid(self) -> Command:
+        return (
+            cmd.run(lambda: self.__turn_with_pid(), self)
+            .until(lambda: self.__at_turn_setpoint())
+            .withName("TurnWithPID")
+        )
 
 
 class DriveMMInches(Command):

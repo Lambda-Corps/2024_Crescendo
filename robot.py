@@ -98,24 +98,26 @@ class MyRobot(TimedCommandRobot):
         self._partner_controller.b().onTrue(
             cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter)
         )
-        # self._partner_controller.x().onTrue(
-        #     cmd.run(  # Subsystem "do stuff", basically execute
-        #         lambda: self._intake.drive_index(), self._intake
-        #     )
-        #     .until(  # Subsystem "stop", what would be in isFinished()
-        #         self._intake.has_note
-        #     )  # Give it a name so we see what command is running
-        #     .andThen(lambda: self._intake.stop_indexer(), self._intake)
-        #     .withName("IntakeNote")
-        # )
         self._partner_controller.x().onTrue(IntakeCommand(self._intake))
 
-        self._partner_controller.y().onTrue(
+        self._partner_controller.y().whileTrue(
             # Stop all indexer motors
-            cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
-                "StopIndexer"
+            cmd.run(lambda: self._intake.drive_index_backward(), self._intake).withName(
+                "EjectIntake"
             )
         )
+        # self._partner_controller.y().onTrue(
+        #     # Stop all indexer motors
+        #     cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
+        #         "StopIndexer"
+        #     )
+        # )
+
+        # self._partner_controller.leftTrigger().whileTrue(
+        #     cmd.run(lambda: self._intake.drive_index_backward(), self._intake).withName(
+        #         "EjectIntake"
+        #     )
+        # )
 
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems

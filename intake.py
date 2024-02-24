@@ -32,6 +32,13 @@ class Intake(Subsystem):
             SmartDashboard.putNumber("SimVolts", 0)
             self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
+    def drive_index_backward(self):
+        index_speed = -SmartDashboard.getNumber("IndexSpeed", 0)
+        intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0)
+
+        self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
+        self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
+
     def drive_index(self, shooting=False):
         index_speed = SmartDashboard.getNumber("IndexSpeed", 0)
         intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
