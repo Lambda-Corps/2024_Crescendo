@@ -173,6 +173,18 @@ class MyRobot(TimedCommandRobot):
             IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 2"),
         )
 
+        NamedCommands.registerCommand(
+            "SetShooterRampToLine",
+            cmd.run(
+                lambda: self._shooter.set_shooter_angle(
+                    self._shooter.SPEAKER_FROM_RING2
+                ),
+                self._shooter,
+            )
+            .until(self._shooter.shooter_at_angle)
+            .andThen(lambda: self._shooter.stop_shooter_ramp(), self._shooter),
+        )
+
         # increasing Qelems numbers, tries to drive more conservatively as the effect
         # In the math, what we're doing is weighting the error less heavily, meaning,
         # as the error gets larger don't react as much.  This makes the robot drive
