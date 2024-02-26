@@ -179,6 +179,14 @@ class DriveTrain(Subsystem):
         # Configure the motion magic objects and store them as member variables
         self.__configure_motion_magic(config)
 
+        # Setup current limits for supply and stator
+        config.current_limits.supply_current_limit = 40
+        config.current_limits.supply_current_limit_enable = True
+        # 1 second of spikes before limiting # TODO Tune this
+        config.current_limits.supply_current_threshold = 1.0
+        config.current_limits.stator_current_limit = 80
+        config.current_limits.stator_current_limit_enable = True
+
         # Apply the configuration to the motors
         for i in range(0, 6):  # Try 5 times
             ret = self._left_leader.configurator.apply(config)
@@ -220,6 +228,15 @@ class DriveTrain(Subsystem):
         self.__configure_motion_magic(config)
 
         config.feedback.sensor_to_mechanism_ratio = constants.DT_GEAR_RATIO
+
+        # Setup current limits for supply and stator
+        config.current_limits.supply_current_limit = 40
+        config.current_limits.supply_current_limit_enable = True
+        # 1 second of spikes before limiting # TODO Tune this
+        config.current_limits.supply_current_threshold = 1.0
+        config.current_limits.stator_current_limit = 80
+        config.current_limits.stator_current_limit_enable = True
+
         # Apply the configuration to the motors
         for i in range(0, 6):  # Try 5 times
             ret = self._right_leader.configurator.apply(config)
