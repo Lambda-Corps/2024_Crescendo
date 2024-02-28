@@ -103,9 +103,9 @@ class MyRobot(TimedCommandRobot):
 
         self._partner_controller.y().whileTrue(
             # Stop all indexer motors
-            cmd.run(lambda: self._intake.drive_index_backward(), self._intake).withName(
-                "EjectIntake"
-            )
+            cmd.run(lambda: self._intake.drive_index_backward(), self._intake)
+            .withName("EjectIntake")
+            .andThen(cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake))
         )
         # self._partner_controller.y().onTrue(
         #     # Stop all indexer motors

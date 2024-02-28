@@ -8,7 +8,8 @@ import constants
 
 class Intake(Subsystem):
     """
-    Test class for shooter prototype
+    Intake subsystem, uses two different roller sets to pick notes up off the floor
+    and then shoot them when needed
     """
 
     DETECTION_VOLTS_LOWER_BOUND = 1.5
@@ -23,6 +24,8 @@ class Intake(Subsystem):
         self._indexroller = TalonSRX(constants.INDEX_ROLLER)
         self._indexroller.configFactoryDefault()
         self._indexroller.setInverted(True)
+
+        # TODO -- Need to set current limits here
 
         SmartDashboard.putNumber("IntakeSpeed", 0.8)
         SmartDashboard.putNumber("IndexSpeed", 0.5)
@@ -67,16 +70,7 @@ class Intake(Subsystem):
         self._simAnalogInput.setVoltage(SmartDashboard.getNumber("SimVolts", 0))
 
     def periodic(self) -> None:
-        SmartDashboard.putNumber("RangeVoltage", self._detector.getAverageVoltage())
-
-        # We need to keep the note from touching the shooter wheels on intake
-        # if we are detecting the note, drive the wheels backward
-        if self.has_note():
-            self._indexroller.set(
-                TalonSRXControlMode.PercentOutput, self.BACKUP_NOTE_SPEED
-            )
-        else:
-            self._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
+        pass
 
 
 class IntakeCommand(Command):
@@ -103,3 +97,34 @@ class IntakeCommand(Command):
 
     def end(self, interrupted: bool):
         self._sub.stop_indexer()
+
+
+class DefaultIntakeCommand(Command):
+    """
+    Default command for the intake.  The only purpose of this command is to keep the motors
+    at 0, unless we have a note too high in the shooter bed that needs to be moved down.
+
+    Using this default command instead of periodic, so that this logic doesn't happen when
+    the shoot note commands are running.
+    """
+
+    def __init__(self, sub: Intake):
+        super().__init__()
+
+        self._intake = sub
+
+        self.addRequirements(self._intake)
+
+    def execute(self):
+        SmartDashboard.putNumber(
+            "RangeVoltage", self._intake._detector.getAverageVoltage()
+        )
+
+        # We need to keep the note from touching the shooter wheels on intake
+        # if we are detecting the note, drive the wheels backward
+        if self._intake.has_note():
+            self._intake._indexroller.set(
+                TalonSRXControlMode.PercentOutput, self._intake.BACKUP_NOTE_SPEED
+            )
+        else:
+            self._intake._indexroller.set(TalonSRXControlMode.PercentOutput, 0)

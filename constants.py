@@ -38,7 +38,7 @@ SHOOTER_KV = 0.11  # Volts * seconds/m
 SHOOTER_KA = 0.40  # Volts * seconds^2/m
 SHOOTER_KS = 0.1
 SHOOTER_GEARING = 1.0  # No reduction
-SHOOTER_MOI = 0.02286  # 1/2 MR^2 in Kgs, .5 * .45 * (4 * .0254)
+SHOOTER_MOI = 0.004572  # 1/2 MR^2 in Kgs, .1 * .45 * (4 * .0254)
 SHOOTER_WHEEL_DIAMETER = 4  # 4" compliant wheels
 SHOOTER_WHEEL_CIRCUMFERENCE_METERS = math.pi * SHOOTER_WHEEL_DIAMETER * METERS_PER_INCH
 
