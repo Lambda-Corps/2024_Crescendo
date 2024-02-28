@@ -20,7 +20,7 @@ from pathplannerlib.auto import (
     ReplanningConfig,
 )
 from drivetrain import DriveTrain
-from intake import Intake, IntakeCommand
+from intake import Intake, IntakeCommand, DefaultIntakeCommand
 from shooter import Shooter, ShooterTestCommand
 from robot_commands import ShootCommand
 from leds import LEDSubsystem
@@ -160,6 +160,8 @@ class MyRobot(TimedCommandRobot):
                 self._shooter,
             ).withName("ShooterDefault")
         )
+
+        self._intake.setDefaultCommand(DefaultIntakeCommand(self._intake))
 
     def __configure_autonomous_commands(self) -> None:
         # Register the named commands used by the PathPlanner auto builder
