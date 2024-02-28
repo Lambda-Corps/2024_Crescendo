@@ -22,6 +22,7 @@ class Intake(Subsystem):
         self._intakeroller.configFactoryDefault()
         self._indexroller = TalonSRX(constants.INDEX_ROLLER)
         self._indexroller.configFactoryDefault()
+        self._indexroller.setInverted(True)
 
         SmartDashboard.putNumber("IntakeSpeed", 0.8)
         SmartDashboard.putNumber("IndexSpeed", 0.5)
