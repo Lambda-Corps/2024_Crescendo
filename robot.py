@@ -84,6 +84,8 @@ class MyRobot(TimedCommandRobot):
 
         self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
 
+        # Left Trigger Note Aim
+        # Right Trigger April Tag
         self._driver_controller.rightTrigger().whileTrue(
             RunCommand(
                 lambda: self._drivetrain.drive_teleop(
@@ -101,12 +103,15 @@ class MyRobot(TimedCommandRobot):
         )
         self._partner_controller.x().onTrue(IntakeCommand(self._intake))
 
-        self._partner_controller.y().whileTrue(
-            # Stop all indexer motors
-            cmd.run(lambda: self._intake.drive_index_backward(), self._intake)
-            .withName("EjectIntake")
-            .andThen(cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake))
-        )
+        # Right Trigger Climber Up
+        # Left Trigger Climber Down
+        # Eject Note
+
+        # POV for shooting positions
+        # Subwoofer - Left
+        # Line - Down
+        # Amp - Right
+
         # self._partner_controller.y().onTrue(
         #     # Stop all indexer motors
         #     cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(

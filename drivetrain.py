@@ -290,7 +290,7 @@ class DriveTrain(Subsystem):
         forward = self.__deadband(forward, self.__DRIVER_DEADBAND)
         turn = self.__deadband(turn, self.__DRIVER_DEADBAND)
 
-        forward = self._forward_limiter.calculate(forward)
+        # forward = self._forward_limiter.calculate(forward)
 
         # TODO -- Needs to be configured and set the __CLAMP_SPEED variable above
         clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 0.3)

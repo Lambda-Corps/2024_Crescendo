@@ -30,7 +30,8 @@ class Intake(Subsystem):
         SmartDashboard.putNumber("IntakeSpeed", 0.8)
         SmartDashboard.putNumber("IndexSpeed", 0.5)
 
-        self._detector: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK)
+        self._detector_0: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK_0)
+        self._detector_1: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK_1)
 
         if RobotBase.isSimulation():
             SmartDashboard.putNumber("SimVolts", 0)
@@ -56,11 +57,16 @@ class Intake(Subsystem):
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, 0)
 
     def has_note(self) -> bool:
-        volts = self._detector.getAverageVoltage()
+        volts_0 = self._detector_0.getAverageVoltage()
+        volts_1 = self._detector_1.getAverageVoltage()
 
         return (
-            volts > self.DETECTION_VOLTS_LOWER_BOUND
-            and volts < self.DETECTION_VOLTS_UPPER_BOUND
+            (
+                volts_0 > self.DETECTION_VOLTS_LOWER_BOUND
+                and volts_1 < self.DETECTION_VOLTS_UPPER_BOUND
+            )
+            or (volts_1 > self.DETECTION_VOLTS_LOWER_BOUND)
+            and (volts_1 < self.DETECTION_VOLTS_UPPER_BOUND)
         )
 
     def index_note(self, speed: float) -> Command:
@@ -117,7 +123,10 @@ class DefaultIntakeCommand(Command):
 
     def execute(self):
         SmartDashboard.putNumber(
-            "RangeVoltage", self._intake._detector.getAverageVoltage()
+            "RangeVoltage_0", self._intake._detector_0.getAverageVoltage()
+        )
+        SmartDashboard.putNumber(
+            "RangeVoltage_1", self._intake._detector_1.getAverageVoltage()
         )
 
         # We need to keep the note from touching the shooter wheels on intake
@@ -128,3 +137,6 @@ class DefaultIntakeCommand(Command):
             )
         else:
             self._intake._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
+
+    def runsWhenDisabled(self) -> bool:
+        return True

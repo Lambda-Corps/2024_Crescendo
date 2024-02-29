@@ -21,10 +21,11 @@ class Shooter(Subsystem):
     Test class for shooter prototype
     """
 
-    SPEAKER_RPS = 52  # measured with Tuner, putting motors at .55 (55%)
-    SHOOTER_MIN = 0.842
-    SPEAKER_FROM_RING2 = 0.858
-    SPEAKER_FROM_SUB = 0.880
+    SPEAKER_RPS = 45  # measured with Tuner, putting motors at .55 (55%)
+    SHOOTER_MIN = 0.322
+    SPEAKER_FROM_RING2 = 0.340
+    SPEAKER_FROM_AMP = 0.361
+    SPEAKER_FROM_SUB = 0.363
 
     def __init__(self):
         super().__init__()
