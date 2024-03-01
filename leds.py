@@ -28,6 +28,13 @@ kBlueRGB: List[int] = [0, 0, 255]
 kOrangeRGB: List[int] = [255, 175, 0]
 kWhiteRGB: List[int] = [255, 255, 255]
 
+hsv_dict: List[int] = {}
+hsv_dict["green"] = kGreenRGB
+hsv_dict["red"] = kRedRGB
+hsv_dict["blue"] = kBlueRGB
+hsv_dict["orange"] = kOrangeRGB
+hsv_dict["white"] = kWhiteRGB
+
 
 class LEDState(Enum):
     DEFAULT = 0
@@ -59,13 +66,13 @@ class LEDSubsystem(Subsystem):
         self.__rainbow_buffer = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
-        self.rainbow(self.__rainbow_buffer)
+        # self.rainbow(self.__rainbow_buffer)
 
         # LED Data
         self.__build_led_data_buffers()
 
         # Set the data
-        self.leds.setData(self.__rainbow_buffer)
+        self.leds.setData(self.__flash_buffer)
         self.leds.start()
 
         self._timer = Timer()
@@ -74,10 +81,10 @@ class LEDSubsystem(Subsystem):
         # Variables to store timing data on led animation
         self._last_animate_time = 0
         self._last_flash_time = 0
-        self._last_flash_off = False
+        self._last_flash_off = True
 
         # Set the State to default
-        self._curr_state = self._last_state = LEDState.DEFAULT
+        self._curr_state = self._last_state = LEDState.ALLIANCE_SET
         self._alliance: Optional[DriverStation.Alliance] = None
 
     def __build_led_data_buffers(self) -> None:
@@ -152,7 +159,7 @@ class LEDSubsystem(Subsystem):
             # Move the LEDs around all chase buffers
             for buffer in self.__chase_buffer_dict.values():
                 # LEDS are in an array like this:
-                # [ x x x x x ]
+                # [ a b c d e ]
                 #   0 1 2 3 4  <--- Their index value
                 # 0 is the first led
                 # Take the first one in the array and save it
@@ -164,73 +171,59 @@ class LEDSubsystem(Subsystem):
 
                 # Take the first one we stored, and put it on the back of the list
                 buffer[len(buffer) - 1] = temp
+                # Resulting LED buffer now looks like this:
+                # [ b c d e a ]
 
             # Store the time for the next run
             self._last_animate_time = timestamp
 
+    def __set_flash_buffers_color(self, delay: float, color: List[int]) -> None:
+        timestamp = self._timer.get()
+        if (timestamp - delay) > self._last_flash_time and self._last_flash_off:
+            # Turn the colors on
+            for led in self.__flash_buffer:
+                led.setRGB(color[0], color[1], color[2])
+
+            self._last_flash_time = timestamp
+            self._last_flash_off = False
+        else:
+            # turn lights off
+            for led in self.__flash_buffer:
+                led.setRGB(0, 0, 0)
+
+            self._last_flash_off = True
+
     def periodic(self) -> None:
         # Check for our alliance to match color
-
         self.check_alliance()
 
+        # Move the leds in their buffers in case they get set
         self.__animate_chase_buffers(0.03)
-
         self.rainbow(self.__rainbow_buffer)
 
         # Set the LEDs based on the steate
         match self._curr_state:
-            case LEDState.ALLIANCE_SET:
-                pass
             case LEDState.TRACK_APRIL_TAG:
-                pass
+                self.__set_flash_buffers_color(1, kWhiteRGB)
+                self.leds.setData(self.__flash_buffer)
             case LEDState.TRACK_NOTE:
-                pass
+                self.__set_flash_buffers_color(1, kOrangeRGB)
+                self.leds.setData(self.__flash_buffer)
             case LEDState.HAS_NOTE:
-                pass
+                self.__set_flash_buffers_color(0.5, kOrangeRGB)
+                self.leds.setData(self.__flash_buffer)
             case LEDState.HAS_CORRECT_TAG:
-                pass
+                self.__set_flash_buffers_color(0.5, kWhiteRGB)
+                self.leds.setData(self.__flash_buffer)
             case LEDState.SHOOTING:
                 pass
-            case _:  # Default
+            case LEDState.ALLIANCE_SET:  # Default
                 if self._alliance == DriverStation.Alliance.kBlue:
                     self.leds.setData(self.__chase_buffer_dict["blue"])
                 elif self._alliance == DriverStation.Alliance.kRed:
                     self.leds.setData(self.__chase_buffer_dict["red"])
                 else:
                     self.leds.setData(self.__rainbow_buffer)
-
-    def setRightSideRGB(self, red: int, green: int, blue: int) -> None:
-        for i in range(kRightSideStart, kRightSideStart + kRightSideCount):
-            self.ledData[i].setRGB(red, green, blue)  #  Using RGB
-
-    def setLeftSideRGB(self, red: int, green: int, blue: int) -> None:
-        for i in range(kLeftSideStart, kLeftSideStart + kLeftSideCount):
-            self.ledData[i].setRGB(red, green, blue)  #  Using RGB
-
-    def setLauncherRGB(self, red: int, green: int, blue: int) -> None:
-        for i in range(kLauncherStart, kLauncherStart + kLauncherCount):
-            self.ledData[i].setRGB(red, green, blue)  #  Using RGB
-
-    def setLauncherRunwayLights(self) -> None:
-
-        self.ledData[kLauncherStart + self._RunwayLightcounter].setRGB(
-            255, 255, 255
-        )  # Turn on new light
-
-        # Turn off previous light
-        if self._RunwayLightcounter > 0:  # special case - first light
-            self.ledData[kLauncherStart + self._RunwayLightcounter - 1].setRGB(
-                0, 0, 0
-            )  # Turn off previous light
-        if self._RunwayLightcounter == 0:  #  special case - last light
-            self.ledData[kLauncherStart + kLauncherCount - 1].setRGB(
-                0, 0, 0
-            )  # Turn off previous light
-
-        if self._RunwayLightcounter < kLauncherCount - 1:
-            self._RunwayLightcounter = self._RunwayLightcounter + 1
-        else:
-            self._RunwayLightcounter = 0
 
     def rainbow(self, buffer: List[AddressableLED.LEDData]) -> None:
         # For every pixel
