@@ -1,4 +1,4 @@
-from commands2 import Command
+from commands2 import Command, InstantCommand
 from wpilib import Timer
 from intake import Intake
 from shooter import Shooter
@@ -26,6 +26,7 @@ class ShootCommand(Command):
     def initialize(self):
         self._timer.reset()
         self._timer.start()
+        self._intake.set_shooting_flag(True)
         # spin the shooter up to speed
         self._shooter.drive_motors()
 
@@ -41,3 +42,19 @@ class ShootCommand(Command):
     def end(self, interrupted: bool):
         self._shooter.stop_motors()
         self._intake.stop_indexer()
+        self._intake.set_shooting_flag(False)
+
+
+class StopIndexAndShooter(InstantCommand):
+    def __init__(self, shooter: Shooter, intake: Intake):
+        super().__init__()
+
+        self._shooter = shooter
+        self._intake = intake
+
+        self.addRequirements(self._shooter, self._intake)
+
+    def end(self, interrupted: bool):
+        self._shooter.stop_motors()
+        self._intake.stop_indexer()
+        self._intake.set_shooting_flag(False)

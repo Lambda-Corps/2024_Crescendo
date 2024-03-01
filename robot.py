@@ -20,9 +20,9 @@ from pathplannerlib.auto import (
     ReplanningConfig,
 )
 from drivetrain import DriveTrain
-from intake import Intake, IntakeCommand, DefaultIntakeCommand
+from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, ShooterTestCommand
-from robot_commands import ShootCommand
+from robot_commands import ShootCommand, StopIndexAndShooter
 from leds import LEDSubsystem
 from climber import Climber, MoveClimber
 import constants
@@ -90,7 +90,7 @@ class MyRobot(TimedCommandRobot):
 
         # Left Trigger Note Aim
         # Right Trigger April Tag
-        self._driver_controller.rightTrigger().whileTrue(
+        self._driver_controller.rightBumper().whileTrue(
             RunCommand(
                 lambda: self._drivetrain.drive_teleop(
                     self._driver_controller.getLeftY(),
@@ -100,18 +100,11 @@ class MyRobot(TimedCommandRobot):
             ).withName("FlippedControls")
         )
 
-        # Partner controller controls
+        ######################## Partner controller controls #########################
         self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
-        self._partner_controller.b().onTrue(
-            cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter).withName(
-                "StopShooter"
-            )
-        )
         self._partner_controller.x().onTrue(IntakeCommand(self._intake))
         self._partner_controller.y().onTrue(
-            cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
-                "StopIntake"
-            )
+            StopIndexAndShooter(self._shooter, self._intake)
         )
 
         # Right Trigger Climber Up
@@ -122,31 +115,22 @@ class MyRobot(TimedCommandRobot):
         self._partner_controller.leftTrigger().whileTrue(
             MoveClimber(self._climber, -1).withName("ClimberDown")
         )
+        # Climber up for 10 seconds
+        self._partner_controller.back(
+            MoveClimber(self._climber, 1, 10).withName("ClimberUp10")
+        )
+        # Climber down for 10 seconds
+        self._partner_controller.start(
+            MoveClimber(self._climber, -1, 10).withName("ClimberDown10")
+        )
 
         # Eject Note
-        self._partner_controller.leftBumper().whileTrue(
-            cmd.run(lambda: self._intake.drive_index_backward())
-            .withName("EjectNote")
-            .andThen(lambda: self._intake.stop_indexer(), self._intake)
-        )
+        self._partner_controller.leftBumper().whileTrue(EjectNote(self._intake))
 
         # POV for shooting positions
         # Subwoofer - Left
         # Line - Down
         # Amp - Right
-
-        # self._partner_controller.y().onTrue(
-        #     # Stop all indexer motors
-        #     cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
-        #         "StopIndexer"
-        #     )
-        # )
-
-        # self._partner_controller.leftTrigger().whileTrue(
-        #     cmd.run(lambda: self._intake.drive_index_backward(), self._intake).withName(
-        #         "EjectIntake"
-        #     )
-        # )
 
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems

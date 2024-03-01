@@ -54,19 +54,27 @@ class LEDSubsystem(Subsystem):
         self.rainbowFirstPixelHue = 0
 
         # Dictionary to hold all the LED buffer possibilities
-        self.__buffer_dict = {}
+        self.__chase_buffer_dict = {}
+        self.__flash_buffer = [AddressableLED.LEDData() for _ in range(kLEDTotalCount)]
+        self.__rainbow_buffer = [
+            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
+        ]
+        self.rainbow(self.__rainbow_buffer)
 
         # LED Data
         self.__build_led_data_buffers()
 
         # Set the data
-        self.leds.setData(self.__buffer_dict["blank"])
+        self.leds.setData(self.__rainbow_buffer)
         self.leds.start()
 
         self._timer = Timer()
         self._timer.start()
 
+        # Variables to store timing data on led animation
         self._last_animate_time = 0
+        self._last_flash_time = 0
+        self._last_flash_off = False
 
         # Set the State to default
         self._curr_state = self._last_state = LEDState.DEFAULT
@@ -77,41 +85,42 @@ class LEDSubsystem(Subsystem):
         Build a set of buffers that will be used for the LEDs.  Using separate buffers for each
         color, animation, etc will minimize the computation needed to switch between schemes
         """
-        self.__buffer_dict["blank"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
+        self.__flash_buffer = [AddressableLED.LEDData() for _ in range(kLEDTotalCount)]
 
-        self.__buffer_dict["blue"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
-        self.__initialize_buffer_with_color(self.__buffer_dict["blue"], kBlueRGB, 5)
-
-        self.__buffer_dict["red"] = [
+        self.__chase_buffer_dict["blue"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.__initialize_buffer_with_color(
-            self.__buffer_dict["red"], kRedRGB, 10, split=False
+            self.__chase_buffer_dict["blue"], kBlueRGB, 10
         )
 
-        self.__buffer_dict["rainbow"] = [
+        self.__chase_buffer_dict["red"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
-        self.rainbow(self.__buffer_dict["rainbow"])
+        self.__initialize_buffer_with_color(
+            self.__chase_buffer_dict["red"], kRedRGB, 10
+        )
 
-        self.__buffer_dict["orange"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
-        self.__initialize_buffer_with_color(self.__buffer_dict["orange"], kOrangeRGB, 5)
+        # self.__flash_buffer["orange"] = [
+        #     AddressableLED.LEDData() for _ in range(kLEDTotalCount)
+        # ]
+        # self.__initialize_buffer_with_color(
+        #     self.__flash_buffer["orange"], kOrangeRGB, kLEDTotalCount, split=False
+        # )
 
-        self.__buffer_dict["white"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
-        self.__initialize_buffer_with_color(self.__buffer_dict["white"], kWhiteRGB, 5)
+        # self.__flash_buffer["white"] = [
+        #     AddressableLED.LEDData() for _ in range(kLEDTotalCount)
+        # ]
+        # self.__initialize_buffer_with_color(
+        #     self.__flash_buffer["white"], kWhiteRGB, kLEDTotalCount, split=False
+        # )
 
-        self.__buffer_dict["green"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
-        self.__initialize_buffer_with_color(self.__buffer_dict["green"], kGreenRGB, 5)
+        # self.__flash_buffer["green"] = [
+        #     AddressableLED.LEDData() for _ in range(kLEDTotalCount)
+        # ]
+        # self.__initialize_buffer_with_color(
+        #     self.__flash_buffer["green"], kGreenRGB, kLEDTotalCount, split=False
+        # )
 
     def __initialize_buffer_with_color(
         self,
@@ -121,6 +130,8 @@ class LEDSubsystem(Subsystem):
         split=True,
     ) -> None:
         if split:
+            # If we're split, treat the right side, left side, and launcher
+            # ramp as if they were three different LED strips
             for i in range(kLeftSideStart, kLeftSideStart + count):
                 buffer[i].setRGB(color[0], color[1], color[2])
 
@@ -129,41 +140,42 @@ class LEDSubsystem(Subsystem):
 
             for i in range(kLauncherStart, kLauncherStart + count):
                 buffer[i].setRGB(color[0], color[1], color[2])
-
         else:
+            # If they aren't split, treat all the LEDs as one continuous
+            # chain of LEDs in series.
             for i in range(0, count):
                 buffer[i].setRGB(color[0], color[1], color[2])
 
-    def __animate_buffers(self, delay: float) -> None:
+    def __animate_chase_buffers(self, delay: float) -> None:
         timestamp = self._timer.get()
         if timestamp - delay > self._last_animate_time:
-            # buffer = buffer[1:] + buffer[:1]
-            for buffer in self.__buffer_dict.values():
+            # Move the LEDs around all chase buffers
+            for buffer in self.__chase_buffer_dict.values():
+                # LEDS are in an array like this:
+                # [ x x x x x ]
+                #   0 1 2 3 4  <--- Their index value
+                # 0 is the first led
+                # Take the first one in the array and save it
                 temp = buffer[0]
+
+                # Shift all the LEDs to the left by 1 spot
                 for i in range(1, len(buffer)):
                     buffer[i - 1] = buffer[i]
 
+                # Take the first one we stored, and put it on the back of the list
                 buffer[len(buffer) - 1] = temp
 
+            # Store the time for the next run
             self._last_animate_time = timestamp
-
-        # return buffer
 
     def periodic(self) -> None:
         # Check for our alliance to match color
 
         self.check_alliance()
 
-        self.__animate_buffers(0.03)
-        # Animate the animated buffers (red, blue, rainbow)
-        # self.__buffer_dict["blue"] = self.__animate_buffer(
-        #     self.__buffer_dict["blue"], 0.05
-        # )
-        # self.__buffer_dict["red"] = self.__animate_buffer(
-        #     self.__buffer_dict["red"], 0.05
-        # )
+        self.__animate_chase_buffers(0.03)
 
-        self.rainbow(self.__buffer_dict["rainbow"])
+        self.rainbow(self.__rainbow_buffer)
 
         # Set the LEDs based on the steate
         match self._curr_state:
@@ -181,11 +193,11 @@ class LEDSubsystem(Subsystem):
                 pass
             case _:  # Default
                 if self._alliance == DriverStation.Alliance.kBlue:
-                    self.leds.setData(self.__buffer_dict["blue"])
+                    self.leds.setData(self.__chase_buffer_dict["blue"])
                 elif self._alliance == DriverStation.Alliance.kRed:
-                    self.leds.setData(self.__buffer_dict["red"])
+                    self.leds.setData(self.__chase_buffer_dict["red"])
                 else:
-                    self.leds.setData(self.__buffer_dict["rainbow"])
+                    self.leds.setData(self.__rainbow_buffer)
 
     def setRightSideRGB(self, red: int, green: int, blue: int) -> None:
         for i in range(kRightSideStart, kRightSideStart + kRightSideCount):

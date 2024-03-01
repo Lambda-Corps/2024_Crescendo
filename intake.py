@@ -37,6 +37,9 @@ class Intake(Subsystem):
             SmartDashboard.putNumber("SimVolts", 0)
             self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
+        # Flag to denote whether or not we are shooting
+        self.__is_shooting = False
+
     def drive_index_backward(self):
         index_speed = -SmartDashboard.getNumber("IndexSpeed", 0) / 2
         intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0) / 2
@@ -57,7 +60,7 @@ class Intake(Subsystem):
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, 0)
 
     def has_note(self) -> bool:
-        volts_0 = self._detector_0.getAverageVoltage()
+        # volts_0 = self._detector_0.getAverageVoltage()
         volts_1 = self._detector_1.getAverageVoltage()
 
         # return (
@@ -79,7 +82,21 @@ class Intake(Subsystem):
         self._simAnalogInput.setVoltage(SmartDashboard.getNumber("SimVolts", 0))
 
     def periodic(self) -> None:
-        pass
+        # SmartDashboard.putNumber("RangeVoltage_0", self._detector_0.getAverageVoltage())
+        SmartDashboard.putNumber("RangeVoltage_1", self._detector_1.getAverageVoltage())
+
+        # We need to keep the note from touching the shooter wheels on intake
+        # if we are detecting the note, drive the wheels backward
+        if self.__is_shooting is False:
+            if self.has_note():
+                self._indexroller.set(
+                    TalonSRXControlMode.PercentOutput, self.BACKUP_NOTE_SPEED
+                )
+            else:
+                self._indexroller.set(TalonSRXControlMode.PercentOutput, 0)
+
+    def set_shooting_flag(self, is_shooting: bool) -> None:
+        self.__is_shooting = is_shooting
 
 
 class IntakeCommand(Command):
@@ -143,3 +160,22 @@ class DefaultIntakeCommand(Command):
 
     def runsWhenDisabled(self) -> bool:
         return True
+
+
+class EjectNote(Command):
+    def __init__(self, intake: Intake):
+        super().__init__()
+
+        self._intake = intake
+
+        self.addRequirements(self._intake)
+
+    def execute(self):
+        self._intake.drive_index_backward()
+
+    # IsFinished returns False, should run while held only
+    def isFinished(self) -> bool:
+        return False
+
+    def end(self, interrupted: bool):
+        self._intake.stop_indexer()
