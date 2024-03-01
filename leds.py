@@ -1,7 +1,8 @@
-from wpilib import AddressableLED, Timer
+from enum import Enum
+from wpilib import AddressableLED, Timer, DriverStation
 from commands2 import Subsystem
 
-from typing import List
+from typing import List, Optional, Dict
 
 #  Implementation of the LEDs on the Robot:
 #  LEDs on left side of robot [0-30]    31 LEDs
@@ -28,6 +29,16 @@ kOrangeRGB: List[int] = [255, 175, 0]
 kWhiteRGB: List[int] = [255, 255, 255]
 
 
+class LEDState(Enum):
+    DEFAULT = 0
+    ALLIANCE_SET = 1
+    TRACK_APRIL_TAG = 2
+    TRACK_NOTE = 3
+    HAS_NOTE = 4
+    HAS_CORRECT_TAG = 5
+    SHOOTING = 6
+
+
 class LEDSubsystem(Subsystem):
     def __init__(self) -> None:
         # PWM Port 9
@@ -42,11 +53,14 @@ class LEDSubsystem(Subsystem):
         # Store what the last hue of the first pixel is
         self.rainbowFirstPixelHue = 0
 
+        # Dictionary to hold all the LED buffer possibilities
+        self.__buffer_dict = {}
+
         # LED Data
         self.__build_led_data_buffers()
 
         # Set the data
-        self.leds.setData(self.__buffer_dict["red"])
+        self.leds.setData(self.__buffer_dict["blank"])
         self.leds.start()
 
         self._timer = Timer()
@@ -54,41 +68,50 @@ class LEDSubsystem(Subsystem):
 
         self._last_animate_time = 0
 
+        # Set the State to default
+        self._curr_state = self._last_state = LEDState.DEFAULT
+        self._alliance: Optional[DriverStation.Alliance] = None
+
     def __build_led_data_buffers(self) -> None:
         """
         Build a set of buffers that will be used for the LEDs.  Using separate buffers for each
         color, animation, etc will minimize the computation needed to switch between schemes
         """
-        self.__buffer_dict = {}
         self.__buffer_dict["blank"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
-        self.__buffer_dict["red"] = [
-            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
-        ]
-        self.__initialize_buffer_with_color(self.__buffer_dict["red"], kRedRGB, 5)
+
         self.__buffer_dict["blue"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.__initialize_buffer_with_color(self.__buffer_dict["blue"], kBlueRGB, 5)
+
+        self.__buffer_dict["red"] = [
+            AddressableLED.LEDData() for _ in range(kLEDTotalCount)
+        ]
+        self.__initialize_buffer_with_color(
+            self.__buffer_dict["red"], kRedRGB, 10, split=False
+        )
+
         self.__buffer_dict["rainbow"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.rainbow(self.__buffer_dict["rainbow"])
+
         self.__buffer_dict["orange"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.__initialize_buffer_with_color(self.__buffer_dict["orange"], kOrangeRGB, 5)
+
         self.__buffer_dict["white"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.__initialize_buffer_with_color(self.__buffer_dict["white"], kWhiteRGB, 5)
+
         self.__buffer_dict["green"] = [
             AddressableLED.LEDData() for _ in range(kLEDTotalCount)
         ]
         self.__initialize_buffer_with_color(self.__buffer_dict["green"], kGreenRGB, 5)
-
-        self.leds.setData(self.__buffer_dict["red"])
 
     def __initialize_buffer_with_color(
         self,
@@ -111,31 +134,58 @@ class LEDSubsystem(Subsystem):
             for i in range(0, count):
                 buffer[i].setRGB(color[0], color[1], color[2])
 
-    def __animate_buffer(
-        self, buffer: List[AddressableLED.LEDData], delay: float, split=False
-    ) -> None:
+    def __animate_buffers(self, delay: float) -> None:
         timestamp = self._timer.get()
         if timestamp - delay > self._last_animate_time:
-            buffer = buffer[1:] + buffer[:1]
+            # buffer = buffer[1:] + buffer[:1]
+            for buffer in self.__buffer_dict.values():
+                temp = buffer[0]
+                for i in range(1, len(buffer)):
+                    buffer[i - 1] = buffer[i]
+
+                buffer[len(buffer) - 1] = temp
 
             self._last_animate_time = timestamp
 
-        return buffer
+        # return buffer
 
     def periodic(self) -> None:
+        # Check for our alliance to match color
+
+        self.check_alliance()
+
+        self.__animate_buffers(0.03)
         # Animate the animated buffers (red, blue, rainbow)
-        self.__buffer_dict["blue"] = self.__animate_buffer(
-            self.__buffer_dict["blue"], 0.1, split=True
-        )
-        self.__buffer_dict["red"] = self.__animate_buffer(
-            self.__buffer_dict["red"], 0.3
-        )
+        # self.__buffer_dict["blue"] = self.__animate_buffer(
+        #     self.__buffer_dict["blue"], 0.05
+        # )
+        # self.__buffer_dict["red"] = self.__animate_buffer(
+        #     self.__buffer_dict["red"], 0.05
+        # )
+
         self.rainbow(self.__buffer_dict["rainbow"])
 
-        # Set the LEDs
-        # TODO -- Create a mechanism to decide what to put here
-        # Default should probably be alliance color
-        self.leds.setData(self.__buffer_dict["blue"])
+        # Set the LEDs based on the steate
+        match self._curr_state:
+            case LEDState.ALLIANCE_SET:
+                pass
+            case LEDState.TRACK_APRIL_TAG:
+                pass
+            case LEDState.TRACK_NOTE:
+                pass
+            case LEDState.HAS_NOTE:
+                pass
+            case LEDState.HAS_CORRECT_TAG:
+                pass
+            case LEDState.SHOOTING:
+                pass
+            case _:  # Default
+                if self._alliance == DriverStation.Alliance.kBlue:
+                    self.leds.setData(self.__buffer_dict["blue"])
+                elif self._alliance == DriverStation.Alliance.kRed:
+                    self.leds.setData(self.__buffer_dict["red"])
+                else:
+                    self.leds.setData(self.__buffer_dict["rainbow"])
 
     def setRightSideRGB(self, red: int, green: int, blue: int) -> None:
         for i in range(kRightSideStart, kRightSideStart + kRightSideCount):
@@ -185,3 +235,11 @@ class LEDSubsystem(Subsystem):
 
         # Check bounds
         self.rainbowFirstPixelHue %= 180
+
+    def check_alliance(self) -> None:
+        """
+        Poll the driverstation for our alliance, set the member variable if we have one.
+
+        The call will return None if we aren't connected to driverstation
+        """
+        self._alliance = DriverStation.getAlliance()

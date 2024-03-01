@@ -27,7 +27,7 @@ class Intake(Subsystem):
 
         # TODO -- Need to set current limits here
 
-        SmartDashboard.putNumber("IntakeSpeed", 0.8)
+        SmartDashboard.putNumber("IntakeSpeed", 0.6)
         SmartDashboard.putNumber("IndexSpeed", 0.5)
 
         self._detector_0: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK_0)
@@ -38,8 +38,8 @@ class Intake(Subsystem):
             self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
 
     def drive_index_backward(self):
-        index_speed = -SmartDashboard.getNumber("IndexSpeed", 0)
-        intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0)
+        index_speed = -SmartDashboard.getNumber("IndexSpeed", 0) / 2
+        intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0) / 2
 
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
@@ -60,13 +60,16 @@ class Intake(Subsystem):
         volts_0 = self._detector_0.getAverageVoltage()
         volts_1 = self._detector_1.getAverageVoltage()
 
-        return (
-            (
-                volts_0 > self.DETECTION_VOLTS_LOWER_BOUND
-                and volts_1 < self.DETECTION_VOLTS_UPPER_BOUND
-            )
-            or (volts_1 > self.DETECTION_VOLTS_LOWER_BOUND)
-            and (volts_1 < self.DETECTION_VOLTS_UPPER_BOUND)
+        # return (
+        #     (
+        #         volts_0 > self.DETECTION_VOLTS_LOWER_BOUND
+        #         and volts_1 < self.DETECTION_VOLTS_UPPER_BOUND
+        #     )
+        #     or (volts_1 > self.DETECTION_VOLTS_LOWER_BOUND)
+        #     and (volts_1 < self.DETECTION_VOLTS_UPPER_BOUND)
+        # )
+        return (volts_1 > self.DETECTION_VOLTS_LOWER_BOUND) and (
+            volts_1 < self.DETECTION_VOLTS_UPPER_BOUND
         )
 
     def index_note(self, speed: float) -> Command:

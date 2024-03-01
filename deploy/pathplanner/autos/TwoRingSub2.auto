@@ -5,7 +5,7 @@
       "x": 1.34,
       "y": 5.55
     },
-    "rotation": 0
+    "rotation": 180.0
   },
   "command": {
     "type": "sequential",
@@ -22,15 +22,28 @@
           "data": {
             "commands": [
               {
-                "type": "wait",
+                "type": "sequential",
                 "data": {
-                  "waitTime": 1.0
+                  "commands": [
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 1.0
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "AutoIntake_tm2"
+                      }
+                    }
+                  ]
                 }
               },
               {
-                "type": "named",
+                "type": "path",
                 "data": {
-                  "name": "AutoIntake_tm2"
+                  "pathName": "SubRing2"
                 }
               }
             ]
@@ -39,13 +52,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "SubRing2"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 2.0
+            "pathName": "Ring2Sub"
           }
         },
         {
@@ -58,35 +65,29 @@
           "type": "parallel",
           "data": {
             "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "AutoIntake_tm2"
-                }
-              },
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Ring2ToRing3"
+                  "pathName": "Sub2Ring3"
                 }
-              }
-            ]
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoShoot"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
+              },
               {
-                "type": "wait",
+                "type": "sequential",
                 "data": {
-                  "waitTime": 1.0
+                  "commands": [
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 1.0
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "AutoIntake_tm3"
+                      }
+                    }
+                  ]
                 }
               },
               {

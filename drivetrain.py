@@ -185,7 +185,7 @@ class DriveTrain(Subsystem):
         # 1 second of spikes before limiting # TODO Tune this
         config.current_limits.supply_current_threshold = 1.0
         config.current_limits.stator_current_limit = 80
-        config.current_limits.stator_current_limit_enable = True
+        config.current_limits.stator_current_limit_enable = False
 
         # Apply the configuration to the motors
         for i in range(0, 6):  # Try 5 times
@@ -235,7 +235,7 @@ class DriveTrain(Subsystem):
         # 1 second of spikes before limiting # TODO Tune this
         config.current_limits.supply_current_threshold = 1.0
         config.current_limits.stator_current_limit = 80
-        config.current_limits.stator_current_limit_enable = True
+        config.current_limits.stator_current_limit_enable = False
 
         # Apply the configuration to the motors
         for i in range(0, 6):  # Try 5 times
@@ -293,11 +293,14 @@ class DriveTrain(Subsystem):
         # forward = self._forward_limiter.calculate(forward)
 
         # TODO -- Needs to be configured and set the __CLAMP_SPEED variable above
-        clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 0.3)
+        clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 1.0)
         turn = self.__clamp(turn, clamp_max)
         forward = self.__clamp(forward, clamp_max)
 
-        self.__drive_teleop_volts(forward, turn)
+        if percent_out:
+            self.__drive_teleop_percent(forward, turn)
+        else:
+            self.__drive_teleop_volts(forward, turn)
 
     def __drive_teleop_volts(self, forward: float, turn: float) -> None:
 
@@ -305,6 +308,9 @@ class DriveTrain(Subsystem):
 
         self._left_volts_out.output = speeds.left * 12.0
         self._right_volts_out.output = speeds.right * 12.0
+
+        SmartDashboard.putNumber("Left", speeds.left)
+        SmartDashboard.putNumber("Right", speeds.right)
 
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)

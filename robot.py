@@ -24,6 +24,7 @@ from intake import Intake, IntakeCommand, DefaultIntakeCommand
 from shooter import Shooter, ShooterTestCommand
 from robot_commands import ShootCommand
 from leds import LEDSubsystem
+from climber import Climber, MoveClimber
 import constants
 from typing import Tuple, List
 
@@ -58,6 +59,9 @@ class MyRobot(TimedCommandRobot):
         wpilib.SmartDashboard.putData("Shooter", self._shooter)
 
         self._leds: LEDSubsystem = LEDSubsystem()
+
+        self._climber: Climber = Climber()
+        wpilib.SmartDashboard.putData("Climber", self._climber)
 
         self.__configure_default_commands()
 
@@ -99,13 +103,32 @@ class MyRobot(TimedCommandRobot):
         # Partner controller controls
         self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
         self._partner_controller.b().onTrue(
-            cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter)
+            cmd.runOnce(lambda: self._shooter.stop_motors(), self._shooter).withName(
+                "StopShooter"
+            )
         )
         self._partner_controller.x().onTrue(IntakeCommand(self._intake))
+        self._partner_controller.y().onTrue(
+            cmd.runOnce(lambda: self._intake.stop_indexer(), self._intake).withName(
+                "StopIntake"
+            )
+        )
 
         # Right Trigger Climber Up
+        self._partner_controller.rightTrigger().whileTrue(
+            MoveClimber(self._climber, 1).withName("ClimberUp")
+        )
         # Left Trigger Climber Down
+        self._partner_controller.leftTrigger().whileTrue(
+            MoveClimber(self._climber, -1).withName("ClimberDown")
+        )
+
         # Eject Note
+        self._partner_controller.leftBumper().whileTrue(
+            cmd.run(lambda: self._intake.drive_index_backward())
+            .withName("EjectNote")
+            .andThen(lambda: self._intake.stop_indexer(), self._intake)
+        )
 
         # POV for shooting positions
         # Subwoofer - Left
@@ -181,6 +204,10 @@ class MyRobot(TimedCommandRobot):
         )
 
         NamedCommands.registerCommand(
+            "AutoIntake_tm3",
+            IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 3"),
+        )
+        NamedCommands.registerCommand(
             "SetShooterRampToLine",
             cmd.run(
                 lambda: self._shooter.set_shooter_angle(
@@ -234,6 +261,10 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.setDefaultOption(
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
+        self._auto_chooser.setDefaultOption(
+            "Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2")
+        )
+
         self._auto_chooser.addOption(
             "Turn .1",
             RunCommand(

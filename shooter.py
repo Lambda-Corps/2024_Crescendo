@@ -21,11 +21,12 @@ class Shooter(Subsystem):
     Test class for shooter prototype
     """
 
-    SPEAKER_RPS = 45  # measured with Tuner, putting motors at .55 (55%)
+    SPEAKER_RPS = 52  # measured with Tuner, putting motors at .55 (55%)
+    FLYWHEEL_SPEEED = 0.6
     SHOOTER_MIN = 0.322
-    SPEAKER_FROM_RING2 = 0.340
-    SPEAKER_FROM_AMP = 0.361
-    SPEAKER_FROM_SUB = 0.363
+    SPEAKER_FROM_RING2 = 0.342
+    AMP_FROM_AMP = 0.361
+    SPEAKER_FROM_SUB = 0.356
 
     def __init__(self):
         super().__init__()
@@ -35,7 +36,7 @@ class Shooter(Subsystem):
         self._shooter_ramp_angle: DutyCycleEncoder = self.__configure_ramp_encoder()
 
         SmartDashboard.putNumber("ShooterRPS", self.SPEAKER_RPS)
-        SmartDashboard.putNumber("ShooterPercent", 0.5)
+        SmartDashboard.putNumber("ShooterPercent", self.FLYWHEEL_SPEEED)
 
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
@@ -173,7 +174,7 @@ class Shooter(Subsystem):
     def shooter_at_angle(self) -> bool:
         curr_diff = self._shooter_ramp_angle.getAbsolutePosition() - self._angle
 
-        return abs(curr_diff) < 0.002
+        return abs(curr_diff) < 0.001
 
     def stop_shooter_ramp(self) -> None:
         self._shooter_ramp.set(ControlMode.PercentOutput, 0)
