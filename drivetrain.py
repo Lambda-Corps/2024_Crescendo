@@ -88,14 +88,6 @@ class DriveTrain(Subsystem):
 
         self._forward_limiter: SlewRateLimiter = SlewRateLimiter(self.__FORWARD_SLEW)
 
-        # TODO Remove this for competition
-        SmartDashboard.putNumber("ClampSpeed", 0.3)
-        SmartDashboard.putNumber("Forward Slew", 0)
-        SmartDashboard.putData(
-            "Reset Slew", cmd.runOnce(lambda: self.reset_slew(), self)
-        )
-        # TODO End of remove
-
     def __configure_simulation(self) -> None:
         self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self._sim_gyro.getDouble("Yaw")
@@ -290,12 +282,8 @@ class DriveTrain(Subsystem):
         forward = self.__deadband(forward, self.__DRIVER_DEADBAND)
         turn = self.__deadband(turn, self.__DRIVER_DEADBAND)
 
-        # forward = self._forward_limiter.calculate(forward)
-
-        # TODO -- Needs to be configured and set the __CLAMP_SPEED variable above
-        clamp_max: float = SmartDashboard.getNumber("ClampSpeed", 1.0)
-        turn = self.__clamp(turn, clamp_max)
-        forward = self.__clamp(forward, clamp_max)
+        turn = self.__clamp(turn, self.__CLAMP_SPEED)
+        forward = self.__clamp(forward, self.__CLAMP_SPEED)
 
         if percent_out:
             self.__drive_teleop_percent(forward, turn)
@@ -308,9 +296,6 @@ class DriveTrain(Subsystem):
 
         self._left_volts_out.output = speeds.left * 12.0
         self._right_volts_out.output = speeds.right * 12.0
-
-        SmartDashboard.putNumber("Left", speeds.left)
-        SmartDashboard.putNumber("Right", speeds.right)
 
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
@@ -351,7 +336,6 @@ class DriveTrain(Subsystem):
         elif (pidoutput > 0) and (pidoutput < self._turn_kF):
             pidoutput = self._turn_kF
 
-        wpilib.SmartDashboard.putNumber("PID Out", pidoutput)
         self.drive_teleop(0, pidoutput)
 
     ################## Drive train Helpers ##########################
@@ -447,18 +431,13 @@ class DriveTrain(Subsystem):
         else:
             self._gyro.setAngleAdjustment(0)
 
-    def reset_slew(self) -> None:
-        self._forward_limiter = SlewRateLimiter(
-            SmartDashboard.getNumber("Forward Slew", self.__FORWARD_SLEW)
-        )
-
     ################### Periodic Updates for the Subsystems ######################
 
     def periodic(self) -> None:
-        SmartDashboard.putNumber("LeftEncoder", self._left_leader.get_position().value)
-        SmartDashboard.putNumber(
-            "RightEncoder", self._right_leader.get_position().value
-        )
+        # SmartDashboard.putNumber("LeftEncoder", self._left_leader.get_position().value)
+        # SmartDashboard.putNumber(
+        #     "RightEncoder", self._right_leader.get_position().value
+        # )
 
         pose = self._odometry.update(
             Rotation2d().fromDegrees(self.__get_gyro_heading()),
@@ -471,7 +450,7 @@ class DriveTrain(Subsystem):
         )
 
         self._field.setRobotPose(pose)
-        SmartDashboard.putNumber("Gyro Angle", self.__get_gyro_heading())
+        # SmartDashboard.putNumber("Gyro Angle", self.__get_gyro_heading())
 
     def simulationPeriodic(self) -> None:
         """
@@ -625,32 +604,33 @@ class DriveMMInches(Command):
         self._dt.drive_volts(0, 0)
 
 
-class DriveWithNoteVision(Command):
+class TeleopDriveWithVision(Command):
     def __init__(
         self,
         dt: DriveTrain,
-        note_yaw_getter: Callable[[], float],
+        _yaw_getter: Callable[[], float],
         controller: CommandXboxController,
+        flipped_controls=False,
     ):
-        super()._init_()
-
         self._dt = dt
-        self._note_yaw_getter = note_yaw_getter
+        self._yaw_getter = _yaw_getter
         self._controller = controller
+        self._flipped = flipped_controls
 
         self.addRequirements(self._dt)
 
-    def initialize(self):
-        return super().initialize()
-
     def execute(self):
         forward = self._controller.getLeftY()
-        note_yaw = self._note_yaw_getter()
+        if self._flipped == False:
+            # Keep the controls like normal teleop and invert
+            forward *= -1
+        yaw = self._yaw_getter()
+        if 1000 == yaw:
+            # We didn't get a result, use the joystick
+            yaw = -self._controller.getRightX()
 
-        self._dt.drive_teleop(forward, note_yaw)
+        self._dt.drive_teleop(forward, yaw)
 
     def isFinished(self) -> bool:
+        # Should only run while button is held, return False
         return False
-
-    def end(self, interrupted: bool):
-        pass

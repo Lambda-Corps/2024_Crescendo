@@ -51,7 +51,7 @@ class Intake(Subsystem):
         index_speed = SmartDashboard.getNumber("IndexSpeed", 0)
         intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
         if shooting:
-            index = 1.0
+            index_speed = 1.0
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
 
