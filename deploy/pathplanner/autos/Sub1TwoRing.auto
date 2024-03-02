@@ -2,10 +2,10 @@
   "version": 1.0,
   "startingPose": {
     "position": {
-      "x": 1.34,
-      "y": 5.55
+      "x": 0.72,
+      "y": 6.67
     },
-    "rotation": 180.0
+    "rotation": -120.0
   },
   "command": {
     "type": "sequential",
@@ -28,22 +28,15 @@
           "data": {
             "commands": [
               {
-                "type": "sequential",
+                "type": "named",
                 "data": {
-                  "commands": [
-                    {
-                      "type": "named",
-                      "data": {
-                        "name": "AutoIntake_tm2"
-                      }
-                    }
-                  ]
+                  "name": "AutoIntake_tm3"
                 }
               },
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Sub2Ring2"
+                  "pathName": "SubRing1"
                 }
               }
             ]
@@ -52,7 +45,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Ring2Sub2"
+            "pathName": "Ring1Sub1"
           }
         },
         {

@@ -82,18 +82,18 @@ class MyRobot(TimedCommandRobot):
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
-        # Left Trigger Note Aim
-        self._driver_controller.leftTrigger().whileTrue(
-            TeleopDriveWithVision(
-                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-            ).withName("Note Driving")
-        )
-        # Right Trigger April Tag
-        self._driver_controller.rightTrigger().whileTrue(
-            TeleopDriveWithVision(
-                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-            ).withName("Tag Driving")
-        )
+        # # Left Trigger Note Aim
+        # self._driver_controller.leftTrigger().whileTrue(
+        #     TeleopDriveWithVision(
+        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+        #     ).withName("Note Driving")
+        # )
+        # # Right Trigger April Tag
+        # self._driver_controller.rightTrigger().whileTrue(
+        #     TeleopDriveWithVision(
+        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+        #     ).withName("Tag Driving")
+        # )
 
         self._driver_controller.rightBumper().whileTrue(
             RunCommand(
@@ -123,11 +123,11 @@ class MyRobot(TimedCommandRobot):
             MoveClimber(self._climber, -1).withName("ClimberDown")
         )
         # Climber up for 10 seconds
-        self._partner_controller.rightBumper(
+        self._partner_controller.rightBumper().onTrue(
             MoveClimber(self._climber, 1, 10).withName("ClimberUp10")
         )
         # Climber down for 10 seconds
-        self._partner_controller.leftBumper(
+        self._partner_controller.leftBumper().onTrue(
             MoveClimber(self._climber, -1, 10).withName("ClimberDown10")
         )
 
@@ -202,14 +202,7 @@ class MyRobot(TimedCommandRobot):
             IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 3"),
         )
         NamedCommands.registerCommand(
-            "SetShooterRampToLine",
-            cmd.run(
-                lambda: self._shooter.set_shooter_location(ShooterPosition.RING_2),
-                self._shooter,
-            )
-            .until(self._shooter.shooter_at_angle)
-            .andThen(lambda: self._shooter.stop_shooter_ramp(), self._shooter),
-        )
+            "SetShooterRampToSpeaker", SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2).withTimeout(3))
 
         # increasing Qelems numbers, tries to drive more conservatively as the effect
         # In the math, what we're doing is weighting the error less heavily, meaning,
@@ -226,15 +219,15 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            [0.0625, 0.125, 2.5],  # <-- Q Elements
+            # [0.0625, 0.125, 2.5],  # <-- Q Elements
             # [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
-            # [0.125, 2.5, 5.0],
+            [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
             # [2.5, 5.0, 10.0],
             # current [-5, 5],  # <-- R elements
-            # [-0.5, 0.5],
-            [-10, 10],
+            [-8, 8],
+            # [-10, 10],
             # [-11, 11],
             # [-12, 12],
             0.02,
@@ -253,9 +246,11 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.setDefaultOption(
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
-        self._auto_chooser.setDefaultOption(
+        self._auto_chooser.addOption(
             "Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2")
         )
+        self._auto_chooser.addOption(
+            "Sub 3 -  Two Ring", PathPlannerAuto("Sub3TwoRing") )
 
         self._auto_chooser.addOption(
             "Turn .1",
