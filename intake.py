@@ -18,7 +18,7 @@ class Intake(Subsystem):
     INDEX_NOTE_SPEED = 0.5
     INTAKE_NOTE_SPEED = 0.6
 
-    def __init__(self, test_mode: bool):
+    def __init__(self, test_mode=False):
         super().__init__()
 
         self._intakeroller = TalonSRX(constants.INTAKE_ROLLER)
