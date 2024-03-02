@@ -21,7 +21,7 @@ from pathplannerlib.auto import (
 )
 from drivetrain import DriveTrain
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
-from shooter import Shooter, ShooterTestCommand
+from shooter import Shooter, SetShooter, ShooterPosition
 from robot_commands import ShootCommand, StopIndexAndShooter
 from leds import LEDSubsystem
 from climber import Climber, MoveClimber
@@ -72,21 +72,9 @@ class MyRobot(TimedCommandRobot):
         self._auto_command = None
         self._current_pose = Pose2d()
 
-        # TODO Remove the reset command
-        wpilib.SmartDashboard.putData(
-            "Reset DT",
-            cmd.runOnce(lambda: self._drivetrain.reset_drivetrain(), self._drivetrain),
-        )
-
-        self._partner_controller.rightStick(
-            cmd.runOnce(lambda: self._shooter.set_shooter_speed(), self._shooter)
-        )
-
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
-
-        self._driver_controller.b().whileTrue(ShooterTestCommand(self._shooter))
 
         # Left Trigger Note Aim
         # Right Trigger April Tag
@@ -128,9 +116,11 @@ class MyRobot(TimedCommandRobot):
         self._partner_controller.leftBumper().whileTrue(EjectNote(self._intake))
 
         # POV for shooting positions
-        # Subwoofer - Left
-        # Line - Down
-        # Amp - Right
+        self._partner_controller.povLeft().onTrue(
+            SetShooter(ShooterPosition.SUBWOOFER_2)
+        )
+        self._partner_controller.povDown().onTrue(SetShooter(ShooterPosition.RING_2))
+        self._partner_controller.povRight().onTrue(SetShooter(ShooterPosition.AMP))
 
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
@@ -194,7 +184,7 @@ class MyRobot(TimedCommandRobot):
         NamedCommands.registerCommand(
             "SetShooterRampToLine",
             cmd.run(
-                lambda: self._shooter.set_shooter_angle(
+                lambda: self._shooter.set_shooter_location(
                     self._shooter.SPEAKER_FROM_RING2
                 ),
                 self._shooter,

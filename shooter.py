@@ -1,3 +1,4 @@
+from enum import Enum
 from commands2 import Subsystem, Command, RunCommand
 from wpilib import SmartDashboard, RobotBase, RobotController, DutyCycleEncoder
 from wpilib.simulation import FlywheelSim
@@ -15,35 +16,58 @@ from phoenix5 import TalonSRX, TalonSRXConfiguration, ControlMode
 
 import constants
 
+SPEAKER_RPS = 37
+FLYWHEEL_SPEEED = 0.6
+SHOOTER_MIN = 0.322
+SPEAKER_FROM_RING2 = 0.342
+AMP_FROM_AMP = 0.361
+SPEAKER_FROM_SUB = 0.356
+
+RPS = 0
+PERCENT_OUT = 1
+LOCATION = 2
+
+
+class ShooterPosition(Enum):
+    """
+    Enum holding meta data information for the various
+    shooting locations on the field.
+
+    [ Top Flywheel RPS, Bottom Flywheel % output, Shooter Ramp Angle]
+    """
+
+    SUBWOOFER_1 = [38, 0.65, SPEAKER_FROM_SUB]
+    SUBWOOFER_2 = [38, 0.65, SPEAKER_FROM_SUB]
+    SUBWOOFER_3 = [38, 0.65, SPEAKER_FROM_SUB]
+    RING_1 = [52, 1.0, SPEAKER_FROM_RING2]
+    RING_2 = [52, 1.0, SPEAKER_FROM_RING2]
+    RING_3 = [52, 1.0, SPEAKER_FROM_RING2]
+    AMP = [25, 0.5, AMP_FROM_AMP]
+
 
 class Shooter(Subsystem):
     """
     Test class for shooter prototype
     """
 
-    SPEAKER_RPS = 52  # measured with Tuner, putting motors at .55 (55%)
-    FLYWHEEL_SPEEED = 0.6
-    SHOOTER_MIN = 0.322
-    SPEAKER_FROM_RING2 = 0.342
-    AMP_FROM_AMP = 0.361
-    SPEAKER_FROM_SUB = 0.356
-
-    def __init__(self):
+    def __init__(self, test_mode=False):
         super().__init__()
         self._shooter_left: TalonFX = self.__configure_left_side()
         self._shooter_right: TalonFX = self.__configure_right_side()
         self._shooter_ramp: TalonSRX = self.__configure_shooter_ramp()
         self._shooter_ramp_angle: DutyCycleEncoder = self.__configure_ramp_encoder()
 
-        SmartDashboard.putNumber("ShooterRPS", self.SPEAKER_RPS)
-        SmartDashboard.putNumber("ShooterPercent", self.FLYWHEEL_SPEEED)
+        self.__test_mode = test_mode
+        if self.__test_mode:
+            SmartDashboard.putNumber("ShooterRPS", SPEAKER_RPS)
+            SmartDashboard.putNumber("ShooterPercent", FLYWHEEL_SPEEED)
 
         # For now use DutyCycle, but should configure for MotionMagicVelocity
         # later on.
         # self._motor_output = DutyCycleOut(0, enable_foc=False)
         self._motor_output = VelocityVoltage(0, enable_foc=False, slot=0)
 
-        self._motor_rps = self.SPEAKER_RPS
+        self._motor_rps = SPEAKER_RPS
 
         if RobotBase.isSimulation():
             self._shooter_sim: FlywheelSim = FlywheelSim(
@@ -53,6 +77,9 @@ class Shooter(Subsystem):
             self._sim_counter = 0
 
         self._angle = 0
+
+        # We should be starting at the subwoofer
+        self._curr_location = ShooterPosition.SUBWOOFER_2
 
     def __configure_left_side(
         self,
@@ -117,8 +144,15 @@ class Shooter(Subsystem):
         return encoder
 
     def drive_motors(self):
-        speed_775: float = SmartDashboard.getNumber("ShooterPercent", 0)
-        self._motor_output.velocity = self._motor_rps
+
+        if self.__test_mode:
+            self._motor_output.velocity = SmartDashboard.putNumber(
+                "ShooterRPS", SPEAKER_RPS
+            )
+            speed_775 = SmartDashboard.putNumber("ShooterPercent", FLYWHEEL_SPEEED)
+        else:
+            speed_775: float = self._curr_location.value[PERCENT_OUT]
+            self._motor_output.velocity = self._curr_location.value[RPS]
         self._shooter_left.set_control(self._motor_output)
         self._lowerleft.set(ControlMode.PercentOutput, speed_775)
         self.lowerright.set(ControlMode.PercentOutput, speed_775)
@@ -130,9 +164,10 @@ class Shooter(Subsystem):
         self.lowerright.set(ControlMode.PercentOutput, 0)
 
     def periodic(self) -> None:
-        SmartDashboard.putNumber(
-            "Velocity", self._shooter_left.get_velocity().value_as_double
-        )
+        if self.__test_mode:
+            SmartDashboard.putNumber(
+                "Velocity", self._shooter_left.get_velocity().value_as_double
+            )
 
         if self._shooter_ramp_angle.isConnected():
             SmartDashboard.putNumber(
@@ -156,23 +191,30 @@ class Shooter(Subsystem):
 
         self._motor_rps = SmartDashboard.getNumber("ShooterRPS", 0)
 
-    def run_shooter(self) -> Command:
-        return RunCommand(lambda: self.drive_motors(), self)
-
     def drive_shooter_ramp(self, speed: float) -> None:
         self._shooter_ramp.set(ControlMode.PercentOutput, speed)
 
-    def set_shooter_angle(self, angle: float) -> None:
+    def set_shooter_location(self, location: ShooterPosition) -> None:
+        self._curr_location = location
+
+    def move_ramp_to_location(self) -> None:
         speed = 0
-        self._angle = angle
-        if self._angle > self._shooter_ramp_angle.getAbsolutePosition():
+        curr_location = self._shooter_ramp_angle.getAbsolutePosition()
+        if curr_location < (self._curr_location.value[LOCATION] - 0.001):
+            # Ramp needs to move up
             speed = 1
-        else:
+        elif curr_location > (self._curr_location.value[LOCATION] - 0.001):
+            # Ramp needs to move down
             speed = -1
+        else:
+            speed = 0
         self._shooter_ramp.set(ControlMode.PercentOutput, speed)
 
     def shooter_at_angle(self) -> bool:
-        curr_diff = self._shooter_ramp_angle.getAbsolutePosition() - self._angle
+        curr_diff = (
+            self._shooter_ramp_angle.getAbsolutePosition()
+            - self._curr_location.value[LOCATION]
+        )
 
         return abs(curr_diff) < 0.001
 
@@ -208,39 +250,22 @@ class Shooter(Subsystem):
         return rad_per_sec * 0.159154943
 
 
-class ShooterTestCommand(Command):
-    """
-    Command to run motors of the shooter with a button press
-    """
-
-    def __init__(self, shooter: Shooter):
-        super().__init__()
-        self._shootspeed = 0
-        self._sub = shooter
-
-        self.addRequirements(self._sub)
-
-    def initialize(self):
-        self._shootspeed = SmartDashboard.getNumber("ShooterRPS", 0)
-        self._sub.set_shooter_speed(self._shootspeed)
-
-    def execute(self):
-        self._sub.drive_motors()
-
-    def isFinished(self) -> bool:
-        return False
-
-    def end(self, interrupted: bool):
-        self._sub.stop_motors()
-
-
-class SetShooterRamp(Command):
-    def __init__(self, shooter: Shooter, angle: float):
-        self._angle = angle
+class SetShooter(Command):
+    def __init__(self, shooter: Shooter, location: ShooterPosition):
+        self._location = location
 
         self._shooter = shooter
 
         self.addRequirements(self._shooter)
 
     def initialize(self):
-        return super().initialize()
+        self._shooter.set_shooter_location(self._location)
+
+    def execute(self):
+        self._shooter.move_ramp_to_location()
+
+    def isFinished(self) -> bool:
+        return self._shooter.shooter_at_angle()
+
+    def end(self, interrupted: bool):
+        self._shooter.stop_shooter_ramp()
