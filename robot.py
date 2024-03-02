@@ -251,6 +251,8 @@ class MyRobot(TimedCommandRobot):
         )
         self._auto_chooser.addOption(
             "Sub 3 -  Two Ring", PathPlannerAuto("Sub3TwoRing") )
+        self._auto_chooser.addOption(
+            "Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7") )
 
         self._auto_chooser.addOption(
             "Turn .1",
