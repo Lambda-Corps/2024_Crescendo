@@ -117,10 +117,14 @@ class MyRobot(TimedCommandRobot):
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(
-            SetShooter(ShooterPosition.SUBWOOFER_2)
+            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2)
         )
-        self._partner_controller.povDown().onTrue(SetShooter(ShooterPosition.RING_2))
-        self._partner_controller.povRight().onTrue(SetShooter(ShooterPosition.AMP))
+        self._partner_controller.povDown().onTrue(
+            SetShooter(self._shooter, ShooterPosition.RING_2)
+        )
+        self._partner_controller.povRight().onTrue(
+            SetShooter(self._shooter, ShooterPosition.AMP)
+        )
 
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
@@ -184,9 +188,7 @@ class MyRobot(TimedCommandRobot):
         NamedCommands.registerCommand(
             "SetShooterRampToLine",
             cmd.run(
-                lambda: self._shooter.set_shooter_location(
-                    self._shooter.SPEAKER_FROM_RING2
-                ),
+                lambda: self._shooter.set_shooter_location(ShooterPosition.RING_2),
                 self._shooter,
             )
             .until(self._shooter.shooter_at_angle)
