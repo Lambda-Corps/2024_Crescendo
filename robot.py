@@ -64,7 +64,8 @@ class MyRobot(TimedCommandRobot):
         self._climber: Climber = Climber()
         wpilib.SmartDashboard.putData("Climber", self._climber)
 
-        self._vision: VisionSystem = VisionSystem(True, True)
+        self._vision: VisionSystem = VisionSystem(False, False)
+        # self._vision: VisionSystem = VisionSystem(True, True)
 
         self.__configure_default_commands()
 
@@ -72,7 +73,7 @@ class MyRobot(TimedCommandRobot):
 
         self.__configure_autonomous_commands()
 
-        self.__configure_led_triggers()
+        # self.__configure_led_triggers()
 
         self._auto_command = None
         self._current_pose = Pose2d()
@@ -88,7 +89,7 @@ class MyRobot(TimedCommandRobot):
             ).withName("Note Driving")
         )
         # Right Trigger April Tag
-        self._driver_controller.leftTrigger().whileTrue(
+        self._driver_controller.rightTrigger().whileTrue(
             TeleopDriveWithVision(
                 self._drivetrain, self._vision.get_note_yaw, self._driver_controller
             ).withName("Tag Driving")
