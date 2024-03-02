@@ -15,8 +15,10 @@ class Intake(Subsystem):
     DETECTION_VOLTS_LOWER_BOUND = 1.5
     DETECTION_VOLTS_UPPER_BOUND = 4.0
     BACKUP_NOTE_SPEED = -0.2
+    INDEX_NOTE_SPEED = 0.5
+    INTAKE_NOTE_SPEED = 0.6
 
-    def __init__(self):
+    def __init__(self, test_mode: bool):
         super().__init__()
 
         self._intakeroller = TalonSRX(constants.INTAKE_ROLLER)
@@ -26,9 +28,10 @@ class Intake(Subsystem):
         self._indexroller.setInverted(True)
 
         # TODO -- Need to set current limits here
-
-        SmartDashboard.putNumber("IntakeSpeed", 0.6)
-        SmartDashboard.putNumber("IndexSpeed", 0.5)
+        self.__test_mode = test_mode
+        if self.__test_mode:
+            SmartDashboard.putNumber("IntakeSpeed", 0.6)
+            SmartDashboard.putNumber("IndexSpeed", 0.5)
 
         self._detector_0: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK_0)
         self._detector_1: AnalogInput = AnalogInput(constants.INTAKE_BEAM_BREAK_1)
@@ -41,15 +44,21 @@ class Intake(Subsystem):
         self.__is_shooting = False
 
     def drive_index_backward(self):
-        index_speed = -SmartDashboard.getNumber("IndexSpeed", 0) / 2
-        intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0) / 2
+        index_speed = self.BACKUP_NOTE_SPEED
+        intake_speed = self.BACKUP_NOTE_SPEED
+        if self.__test_mode:
+            index_speed = -SmartDashboard.getNumber("IndexSpeed", 0) / 2
+            intake_speed = -SmartDashboard.getNumber("IntakeSpeed", 0) / 2
 
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
 
     def drive_index(self, shooting=False):
-        index_speed = SmartDashboard.getNumber("IndexSpeed", 0)
-        intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
+        index_speed = self.INDEX_NOTE_SPEED
+        intake_speed = self.INTAKE_NOTE_SPEED
+        if self.__test_mode:
+            index_speed = SmartDashboard.getNumber("IndexSpeed", 0)
+            intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
         if shooting:
             index_speed = 1.0
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
