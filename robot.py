@@ -11,7 +11,7 @@ from commands2 import (
     WaitCommand,
     cmd,
 )
-from commands2.button import CommandXboxController
+from commands2.button import CommandXboxController, Trigger
 from wpimath.geometry import Pose2d
 from pathplannerlib.auto import (
     NamedCommands,
@@ -23,7 +23,7 @@ from drivetrain import DriveTrain, TeleopDriveWithVision
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
 from robot_commands import ShootCommand, StopIndexAndShooter
-from leds import LEDSubsystem
+from leds import LEDSubsystem, FlashLEDCommand
 from climber import Climber, MoveClimber
 from vision import VisionSystem
 import constants
@@ -71,6 +71,8 @@ class MyRobot(TimedCommandRobot):
         self.__configure_button_bindings()
 
         self.__configure_autonomous_commands()
+
+        self.__configure_led_triggers()
 
         self._auto_command = None
         self._current_pose = Pose2d()
@@ -272,6 +274,15 @@ class MyRobot(TimedCommandRobot):
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
+
+    def __configure_led_triggers(self) -> None:
+        note_trigger: Trigger = Trigger(self._intake.has_note).onTrue(
+            FlashLEDCommand(self._leds, 1.5)
+        )
+
+        tag_trigger: Trigger = Trigger(self._vision.has_desired_tag_in_sight).onTrue(
+            FlashLEDCommand(self._leds, 1.5)
+        )
 
     def getAutonomousCommand(self) -> Command:
         return self._auto_chooser.getSelected()

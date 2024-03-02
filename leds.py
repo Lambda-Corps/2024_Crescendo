@@ -1,6 +1,6 @@
 from enum import Enum
 from wpilib import AddressableLED, Timer, DriverStation
-from commands2 import Subsystem
+from commands2 import Subsystem, Command, InstantCommand
 
 from typing import List, Optional, Dict
 
@@ -210,10 +210,10 @@ class LEDSubsystem(Subsystem):
                 self.__set_flash_buffers_color(1, kOrangeRGB)
                 self.leds.setData(self.__flash_buffer)
             case LEDState.HAS_NOTE:
-                self.__set_flash_buffers_color(0.5, kOrangeRGB)
+                self.__set_flash_buffers_color(0.2, kOrangeRGB)
                 self.leds.setData(self.__flash_buffer)
             case LEDState.HAS_CORRECT_TAG:
-                self.__set_flash_buffers_color(0.5, kWhiteRGB)
+                self.__set_flash_buffers_color(0.2, kWhiteRGB)
                 self.leds.setData(self.__flash_buffer)
             case LEDState.SHOOTING:
                 pass
@@ -248,3 +248,29 @@ class LEDSubsystem(Subsystem):
         The call will return None if we aren't connected to driverstation
         """
         self._alliance = DriverStation.getAlliance()
+
+    def set_state(self, state: LEDState) -> None:
+        self._last_state = self._curr_state
+        self._curr_state = state
+
+    def unset_state(self) -> None:
+        self._curr_state = self._last_state
+
+
+class FlashLEDCommand(Command):
+    def __init__(self, leds: LEDSubsystem, time: float):
+        self._led_sub = leds
+        self._duration = time
+
+        self._timer = Timer()
+        self._timer.start()
+
+    def initialize(self):
+        self._timer.restart()
+        self._led_sub.set_state(LEDState.HAS_NOTE)
+
+    def isFinished(self) -> bool:
+        return self._timer.hasElapsed(self._duration)
+
+    def end(self, interrupted: bool):
+        self._led_sub.unset_state()

@@ -38,7 +38,7 @@ class Intake(Subsystem):
 
         if RobotBase.isSimulation():
             SmartDashboard.putNumber("SimVolts", 0)
-            self._simAnalogInput: AnalogInputSim = AnalogInputSim(0)
+            self._simAnalogInput: AnalogInputSim = AnalogInputSim(1)
 
         # Flag to denote whether or not we are shooting
         self.__is_shooting = False

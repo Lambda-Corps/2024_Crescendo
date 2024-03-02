@@ -46,7 +46,7 @@ class VisionSystem(Subsystem):
 
         # Intialize cameras to None and instantiate them if they should be used
         if RobotBase.isSimulation():
-            pass
+            self._tag_camera = self._note_camera = None
         else:
             self._tag_camera = self._note_camera = None
             if init_april_tag:
