@@ -19,12 +19,13 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
-from drivetrain import DriveTrain
+from drivetrain import DriveTrain, TeleopDriveWithVision
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
 from robot_commands import ShootCommand, StopIndexAndShooter
 from leds import LEDSubsystem
 from climber import Climber, MoveClimber
+from vision import VisionSystem
 import constants
 from typing import Tuple, List
 
@@ -63,6 +64,8 @@ class MyRobot(TimedCommandRobot):
         self._climber: Climber = Climber()
         wpilib.SmartDashboard.putData("Climber", self._climber)
 
+        self._vision: VisionSystem = VisionSystem(True, True)
+
         self.__configure_default_commands()
 
         self.__configure_button_bindings()
@@ -77,7 +80,18 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         # Left Trigger Note Aim
+        self._driver_controller.leftTrigger().whileTrue(
+            TeleopDriveWithVision(
+                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+            ).withName("Note Driving")
+        )
         # Right Trigger April Tag
+        self._driver_controller.leftTrigger().whileTrue(
+            TeleopDriveWithVision(
+                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+            ).withName("Tag Driving")
+        )
+
         self._driver_controller.rightBumper().whileTrue(
             RunCommand(
                 lambda: self._drivetrain.drive_teleop(
@@ -94,6 +108,8 @@ class MyRobot(TimedCommandRobot):
         self._partner_controller.y().onTrue(
             StopIndexAndShooter(self._shooter, self._intake)
         )
+        # Eject Note
+        self._partner_controller.b().whileTrue(EjectNote(self._intake))
 
         # Right Trigger Climber Up
         self._partner_controller.rightTrigger().whileTrue(
@@ -104,16 +120,13 @@ class MyRobot(TimedCommandRobot):
             MoveClimber(self._climber, -1).withName("ClimberDown")
         )
         # Climber up for 10 seconds
-        self._partner_controller.back(
+        self._partner_controller.rightBumper(
             MoveClimber(self._climber, 1, 10).withName("ClimberUp10")
         )
         # Climber down for 10 seconds
-        self._partner_controller.start(
+        self._partner_controller.leftBumper(
             MoveClimber(self._climber, -1, 10).withName("ClimberDown10")
         )
-
-        # Eject Note
-        self._partner_controller.leftBumper().whileTrue(EjectNote(self._intake))
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(

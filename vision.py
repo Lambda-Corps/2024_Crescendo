@@ -1,4 +1,4 @@
-from commands2 import Subsystem, Command
+from commands2 import Subsystem, Command, cmd
 from wpimath.geometry import Transform3d, Transform2d, Pose2d, Pose3d
 from wpimath.units import feetToMeters
 from photonlibpy.photonCamera import (
@@ -8,10 +8,17 @@ from photonlibpy.photonCamera import (
 )
 from photonlibpy.photonTrackedTarget import PhotonTrackedTarget
 from robotpy_apriltag import AprilTagFieldLayout
-from wpilib import RobotBase
+from wpilib import RobotBase, DriverStation, SmartDashboard
 from typing import List, Dict, Optional
 
+from shooter import ShooterPosition
+
 import os
+
+RED_SPEAKER_TAG = 4
+RED_AMP_TAG = 5
+BLUE_AMP_TAG = 6
+BLUE_SPEAKER_TAG = 7
 
 
 class CameraPoseEstimate:
@@ -48,6 +55,9 @@ class VisionSystem(Subsystem):
             if init_note_detection:
                 self._note_camera = NoteDetectionPhotonCamera("NoteCamera")
 
+        # Keep trag of a given tag
+        self.__tag_id = 0
+
     def periodic(self) -> None:
         if RobotBase.isSimulation():
             # Don't do anything in sim
@@ -60,6 +70,9 @@ class VisionSystem(Subsystem):
         if self._tag_camera is not None:
             self._note_camera.update_camera_results()
 
+        SmartDashboard.putBoolean("See Note", self.has_note_in_sight())
+        SmartDashboard.putBoolean("See Tag", self.has_desired_tag_in_sight())
+
     def get_note_yaw(self) -> float:
         if self._note_camera is not None:
             return self._note_camera.get_note_yaw()
@@ -68,8 +81,52 @@ class VisionSystem(Subsystem):
         if self._tag_camera is not None:
             return self._tag_camera.get_pose_estimates()
 
-    def get_tag_metadata(self, tag_id: int) -> Optional[TagMetaData]:
-        return self._tag_camera._tag_metadatas[tag_id]
+    def set_target_tag(self, position: ShooterPosition) -> None:
+
+        if (
+            position == ShooterPosition.SUBWOOFER_1
+            or position == ShooterPosition.SUBWOOFER_2
+            or position == ShooterPosition.SUBWOOFER_3
+        ):
+            # Set according to blue or red
+            if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+                self.__tag_id = BLUE_SPEAKER_TAG
+            elif DriverStation.getAlliance() == DriverStation.Alliance.kRed:
+                self.__tag_id = RED_SPEAKER_TAG
+
+        if position == ShooterPosition.AMP:
+            # Set according to blue or red
+            if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+                self.__tag_id = BLUE_AMP_TAG
+            elif DriverStation.getAlliance() == DriverStation.Alliance.kRed:
+                self.__tag_id = RED_SPEAKER_TAG
+
+    def get_tag_yaw(self) -> float:
+        id: TagMetaData = self.__get_tag_metadata(self.__tag_id)
+
+        return 1000 if id is None else id._yaw
+
+    def __get_tag_metadata(self, tag_id: int) -> Optional[TagMetaData]:
+        if self._tag_camera is not None:
+            return self._tag_camera._tag_metadatas[tag_id]
+
+    def has_desired_tag_in_sight(self) -> bool:
+        if self._tag_camera is not None:
+            return self._tag_camera._tag_metadatas[self.__tag_id] is not None
+        else:
+            return False
+
+    def has_note_in_sight(self) -> bool:
+        if self._note_camera is not None:
+            return self._note_camera.get_note_yaw() != 1000
+        else:
+            return False
+
+    def set_amp_tag_target_cmd(self) -> Command:
+        return cmd.runOnce(self.set_target_tag(ShooterPosition.AMP))
+
+    def set_speaker_tag_target_cmd(self) -> Command:
+        return cmd.runOnce(self.set_target_tag(ShooterPosition.SUBWOOFER_2))
 
 
 class AprilTagPhotonCamera:
@@ -198,10 +255,10 @@ class NoteDetectionPhotonCamera:
         """
         target_list: List[PhotonTrackedTarget] = self._latest_result.getTargets()
 
-        # If there are no current results, return -100 to signify no target
+        # If there are no current results, return 1000 to signify no target
         if len(target_list) == 0:
             # we have no targets
-            return -100
+            return 1000
 
         largest_target = PhotonTrackedTarget()
         # Iterate through each target and grab the largest area,
