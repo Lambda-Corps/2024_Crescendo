@@ -219,16 +219,16 @@ class MyRobot(TimedCommandRobot):
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            # [0.0625, 0.125, 2.5],  # <-- Q Elements
+            [0.0625, 0.125, 2.5],  # <-- Q Elements
             # [0.075, 0.15, 3.1],
             # [0.09, 0.19, 3.7],
-            [0.125, 2.5, 5.0],
+            # [0.125, 2.5, 5.0],
             # [0.19, 3.75, 7.5],
             # [2.5, 5.0, 10.0],
             # current [-5, 5],  # <-- R elements
-            [-8, 8],
+            # [-8, 8],
             # [-10, 10],
-            # [-11, 11],
+            [-11, 11],
             # [-12, 12],
             0.02,
             # ReplanningConfig(
