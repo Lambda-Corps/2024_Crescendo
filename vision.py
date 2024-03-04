@@ -65,10 +65,10 @@ class VisionSystem(Subsystem):
 
         # Update the camera results
         if self._note_camera is not None:
-            self._tag_camera.update_camera_results()
+            self._note_camera.update_camera_results()
 
         if self._tag_camera is not None:
-            self._note_camera.update_camera_results()
+            self._tag_camera.update_camera_results()
 
         SmartDashboard.putBoolean("See Note", self.has_note_in_sight())
         SmartDashboard.putBoolean("See Tag", self.has_desired_tag_in_sight())
