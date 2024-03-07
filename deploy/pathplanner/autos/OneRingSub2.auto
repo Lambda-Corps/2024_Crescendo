@@ -45,14 +45,14 @@
                 "data": {
                   "pathName": "Sub2Ring2"
                 }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToLine"
+                }
               }
             ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Ring2Sub2"
           }
         },
         {

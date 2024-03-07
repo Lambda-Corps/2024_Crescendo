@@ -36,12 +36,12 @@ class ShooterPosition(Enum):
     [ Top Flywheel RPS, Bottom Flywheel % output, Shooter Ramp Angle]
     """
 
-    SUBWOOFER_1 = [42, 0.80, SPEAKER_FROM_SUB]
-    SUBWOOFER_2 = [42, 0.80, SPEAKER_FROM_SUB]
-    SUBWOOFER_3 = [42, 0.80, SPEAKER_FROM_SUB]
-    RING_1 = [52, 1.0, SPEAKER_FROM_RING2]
-    RING_2 = [52, 1.0, SPEAKER_FROM_RING2]
-    RING_3 = [52, 1.0, SPEAKER_FROM_RING2]
+    SUBWOOFER_1 = [52, 1.0, SPEAKER_FROM_SUB]
+    SUBWOOFER_2 = [52, 1.0, SPEAKER_FROM_SUB]
+    SUBWOOFER_3 = [52, 1.0, SPEAKER_FROM_SUB]
+    RING_1 = [58, 1.0, SPEAKER_FROM_RING2]
+    RING_2 = [58, 1.0, SPEAKER_FROM_RING2]
+    RING_3 = [58, 1.0, SPEAKER_FROM_RING2]
     AMP = [25, 0.5, AMP_FROM_AMP]
 
 
@@ -146,10 +146,10 @@ class Shooter(Subsystem):
     def drive_motors(self):
 
         if self.__test_mode:
-            self._motor_output.velocity = SmartDashboard.putNumber(
+            self._motor_output.velocity = SmartDashboard.getNumber(
                 "ShooterRPS", SPEAKER_RPS
             )
-            speed_775 = SmartDashboard.putNumber("ShooterPercent", FLYWHEEL_SPEEED)
+            speed_775 = SmartDashboard.getNumber("ShooterPercent", FLYWHEEL_SPEEED)
         else:
             speed_775: float = self._curr_location.value[PERCENT_OUT]
             self._motor_output.velocity = self._curr_location.value[RPS]
@@ -215,8 +215,8 @@ class Shooter(Subsystem):
             self._shooter_ramp_angle.getAbsolutePosition()
             - self._curr_location.value[LOCATION]
         )
-
-        return abs(curr_diff) < 0.001
+        SmartDashboard.putNumber("ShooterDiff", curr_diff)
+        return abs(curr_diff) < 0.0015
 
     def stop_shooter_ramp(self) -> None:
         self._shooter_ramp.set(ControlMode.PercentOutput, 0)

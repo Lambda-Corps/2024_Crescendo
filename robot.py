@@ -50,7 +50,7 @@ class MyRobot(TimedCommandRobot):
         )
 
         # Instantiate any subystems
-        self._drivetrain: DriveTrain = DriveTrain()
+        self._drivetrain: DriveTrain = DriveTrain(test_mode=True)
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
         self._intake: Intake = Intake()
@@ -202,7 +202,13 @@ class MyRobot(TimedCommandRobot):
             IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 3"),
         )
         NamedCommands.registerCommand(
-            "SetShooterRampToSpeaker", SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2).withTimeout(3))
+            "SetShooterRampToSpeaker",
+            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2).withTimeout(3),
+        )
+        NamedCommands.registerCommand(
+            "SetShooterRampToLine",
+            SetShooter(self._shooter, ShooterPosition.RING_2).withTimeout(6),
+        )
 
         # increasing Qelems numbers, tries to drive more conservatively as the effect
         # In the math, what we're doing is weighting the error less heavily, meaning,
@@ -246,13 +252,8 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.setDefaultOption(
             "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
         )
-        self._auto_chooser.addOption(
-            "Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2")
-        )
-        self._auto_chooser.addOption(
-            "Sub 3 -  Two Ring", PathPlannerAuto("Sub3TwoRing") )
-        self._auto_chooser.addOption(
-            "Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7") )
+        self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
+        self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
 
         self._auto_chooser.addOption(
             "Turn .1",

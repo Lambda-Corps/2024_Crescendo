@@ -54,7 +54,7 @@ class DriveTrain(Subsystem):
     __FORWARD_SLEW = 3  # 1/3 of a second to full speed
     __CLAMP_SPEED = 1.0
 
-    def __init__(self) -> None:
+    def __init__(self, test_mode=False) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
 
@@ -87,6 +87,10 @@ class DriveTrain(Subsystem):
         SmartDashboard.putData("Navx", self._gyro)
 
         self._forward_limiter: SlewRateLimiter = SlewRateLimiter(self.__FORWARD_SLEW)
+
+        self._test_mode = test_mode
+        if self._test_mode:
+            SmartDashboard.putNumber("ClampSpeed", 0.3)
 
     def __configure_simulation(self) -> None:
         self._sim_gyro = wpilib.simulation.SimDeviceSim("navX-Sensor[4]")
@@ -279,6 +283,8 @@ class DriveTrain(Subsystem):
     ########################### Drivetrain Drive methods #######################
 
     def drive_teleop(self, forward: float, turn: float, percent_out=False):
+        if self._test_mode:
+            self.__CLAMP_SPEED = SmartDashboard.getNumber("ClampSpeed", 0.3)
         forward = self.__deadband(forward, self.__DRIVER_DEADBAND)
         turn = self.__deadband(turn, self.__DRIVER_DEADBAND)
 
