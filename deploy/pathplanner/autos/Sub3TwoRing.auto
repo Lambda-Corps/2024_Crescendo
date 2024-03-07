@@ -2,10 +2,10 @@
   "version": 1.0,
   "startingPose": {
     "position": {
-      "x": 1.34,
-      "y": 5.55
+      "x": 0.74,
+      "y": 4.39
     },
-    "rotation": 180.0
+    "rotation": 117.0
   },
   "command": {
     "type": "sequential",
@@ -30,13 +30,26 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Sub2Ring2"
+                  "pathName": "Sub3Ring3"
                 }
               },
               {
-                "type": "named",
+                "type": "sequential",
                 "data": {
-                  "name": "AutoIntake_tm2"
+                  "commands": [
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 1.0
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "AutoIntake_tm3"
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -45,7 +58,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Ring2Sub2"
+            "pathName": "Ring3ShootLine"
           }
         },
         {
@@ -61,28 +74,29 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Sub2toRing1"
+                  "pathName": "3ShootLineRing7"
                 }
               },
               {
-                "type": "named",
+                "type": "sequential",
                 "data": {
-                  "name": "SetShooterRampToMin"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "AutoIntake_tm5"
+                  "commands": [
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 4.0
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "AutoIntake_tm3"
+                      }
+                    }
+                  ]
                 }
               }
             ]
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoShoot"
           }
         }
       ]

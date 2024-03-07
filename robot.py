@@ -199,15 +199,19 @@ class MyRobot(TimedCommandRobot):
 
         NamedCommands.registerCommand(
             "AutoIntake_tm3",
-            IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 3"),
+            IntakeCommand(self._intake).withTimeout(3).withName("AutoIntake 3"),
+        )
+        NamedCommands.registerCommand(
+            "AutoIntake_tm5",
+            IntakeCommand(self._intake).withTimeout(5).withName("AutoIntake 5"),
         )
         NamedCommands.registerCommand(
             "SetShooterRampToSpeaker",
-            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2).withTimeout(3),
+            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2).withTimeout(5),
         )
         NamedCommands.registerCommand(
-            "SetShooterRampToLine",
-            SetShooter(self._shooter, ShooterPosition.RING_2).withTimeout(6),
+            "SetShooterRampToMin",
+            SetShooter(self._shooter, ShooterPosition.MIN).withTimeout(6),
         )
 
         # increasing Qelems numbers, tries to drive more conservatively as the effect

@@ -11,7 +11,7 @@ class ShootCommand(Command):
     Runs for the specified amount of time RUN_DURATION
     """
 
-    RUN_DURATION = 2
+    RUN_DURATION = 1.1
 
     def __init__(self, intake: Intake, shooter: Shooter):
         super().__init__()
@@ -33,7 +33,7 @@ class ShootCommand(Command):
     def execute(self):
         # Once the shooter is up to speed, index the notes
         # if self._shooter.shooter_at_speed():
-        if self._timer.hasElapsed(1):
+        if self._timer.hasElapsed(.7):
             self._intake.drive_index(shooting=True)
 
     def isFinished(self) -> bool:

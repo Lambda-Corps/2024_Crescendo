@@ -43,7 +43,7 @@ class ShooterPosition(Enum):
     RING_2 = [58, 1.0, SPEAKER_FROM_RING2]
     RING_3 = [58, 1.0, SPEAKER_FROM_RING2]
     AMP = [25, 0.5, AMP_FROM_AMP]
-
+    MIN = [58, 1.0, SHOOTER_MIN]
 
 class Shooter(Subsystem):
     """
