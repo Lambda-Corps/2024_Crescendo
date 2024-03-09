@@ -73,7 +73,7 @@ class MyRobot(TimedCommandRobot):
 
         self.__configure_autonomous_commands()
 
-        # self.__configure_led_triggers()
+        self.__configure_led_triggers()
 
         self._auto_command = None
         self._current_pose = Pose2d()
@@ -224,26 +224,31 @@ class MyRobot(TimedCommandRobot):
         # has a better chance of keeping the car under control
         # Down below, in comments, there are a few candidate values that have been used
         # under testing.  Tweak, and test, to find the right ones.
+        # [0.0625, 0.125, 2.5],  # <-- Q Elements
+        # [0.075, 0.15, 3.1],
+        # [0.09, 0.19, 3.7],
+        # [0.125, 2.5, 5.0],
+        # [0.19, 3.75, 7.5],
+        # [2.5, 5.0, 10.0],
+        # current [-5, 5],  # <-- R elements
+        # [-8, 8],
+        # [-10, 10],
+        # [-11, 11],
+        # [-12, 12],
+        q_elems = [0.0625, 0.125, 2.5]
+        r_elems = [-11, 11]
+        if RobotBase.isSimulation():
+            q_elems = [0.09, 0.19, 3.7]
+            r_elems = [-5, 5]
+
         AutoBuilder.configureLTV(
             self._drivetrain.get_robot_pose,
             self._drivetrain.reset_odometry,
             self._drivetrain.get_wheel_speeds,  # Current ChassisSpeeds supplier
             self._drivetrain.driveSpeeds,  # Method that will drive the robot given ChassisSpeeds
-            [0.0625, 0.125, 2.5],  # <-- Q Elements
-            # [0.075, 0.15, 3.1],
-            # [0.09, 0.19, 3.7],
-            # [0.125, 2.5, 5.0],
-            # [0.19, 3.75, 7.5],
-            # [2.5, 5.0, 10.0],
-            # current [-5, 5],  # <-- R elements
-            # [-8, 8],
-            # [-10, 10],
-            [-11, 11],
-            # [-12, 12],
+            q_elems,
+            r_elems,
             0.02,
-            # ReplanningConfig(
-            #     False, False
-            # ),
             ReplanningConfig(),  # Default path replanning config. See the API for the options here
             self._drivetrain.should_flip_path,  # Flip if we're on the red side
             self._drivetrain,  # Reference to this subsystem to set requirements
