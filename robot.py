@@ -211,7 +211,11 @@ class MyRobot(TimedCommandRobot):
         )
         NamedCommands.registerCommand(
             "SetShooterRampToMin",
-            SetShooter(self._shooter, ShooterPosition.MIN).withTimeout(6),
+            SetShooter(self._shooter, ShooterPosition.MIN).withTimeout(8),
+        )
+        NamedCommands.registerCommand(
+            "SetShooterRampToPoint",
+            SetShooter(self._shooter, ShooterPosition.RING3AUTO).withTimeout(8),
         )
 
         # increasing Qelems numbers, tries to drive more conservatively as the effect
@@ -259,29 +263,14 @@ class MyRobot(TimedCommandRobot):
         # chooser so the drive team can select the starting auto.
         self._auto_chooser: wpilib.SendableChooser = wpilib.SendableChooser()
         self._auto_chooser.setDefaultOption(
-            "Sub 2 - One Ring", PathPlannerAuto("OneRingSub2")
+            "Sub 2 - Two Ring", PathPlannerAuto("OneRingSub2")
         )
-        self._auto_chooser.addOption("Sub 2 - Two Ring", PathPlannerAuto("TwoRingSub2"))
+        self._auto_chooser.addOption("Sub 2 - Three Ring", PathPlannerAuto("TwoRingSub2"))
+        self._auto_chooser.addOption("Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2"))
         self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
         self._auto_chooser.addOption("Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong"))
 
-        self._auto_chooser.addOption(
-            "Turn .1",
-            RunCommand(
-                lambda: self._drivetrain.drive_volts(-0.1, 0.1), self._drivetrain
-            )
-            .withTimeout(3)
-            .withName("Turn .1 3"),
-        )
-        self._auto_chooser.addOption(
-            "Turn .15",
-            RunCommand(
-                lambda: self._drivetrain.drive_volts(-0.15, 0.15), self._drivetrain
-            )
-            .withTimeout(3)
-            .withName("Turn .15 3"),
-        )
-
+        
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
     def __configure_led_triggers(self) -> None:

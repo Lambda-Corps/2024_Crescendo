@@ -18,11 +18,11 @@ import constants
 
 SPEAKER_RPS = 37
 FLYWHEEL_SPEEED = 0.6
-SHOOTER_MIN = 0.322
+SHOOTER_MIN = 0.324
 SPEAKER_FROM_RING2 = 0.330
 AMP_FROM_AMP = 0.348
 SPEAKER_FROM_SUB = 0.353
-
+POINT3_AUTO = 0.341
 RPS = 0
 PERCENT_OUT = 1
 LOCATION = 2
@@ -44,7 +44,7 @@ class ShooterPosition(Enum):
     RING_3 = [58, 1.0, SPEAKER_FROM_RING2]
     AMP = [25, 0.5, AMP_FROM_AMP]
     MIN = [58, 1.0, SHOOTER_MIN]
-
+    RING3AUTO = [58, 1.0, POINT3_AUTO]
 class Shooter(Subsystem):
     """
     Test class for shooter prototype
@@ -216,7 +216,7 @@ class Shooter(Subsystem):
             - self._curr_location.value[LOCATION]
         )
         SmartDashboard.putNumber("ShooterDiff", curr_diff)
-        return abs(curr_diff) < 0.0015
+        return abs(curr_diff) < 0.001
 
     def stop_shooter_ramp(self) -> None:
         self._shooter_ramp.set(ControlMode.PercentOutput, 0)

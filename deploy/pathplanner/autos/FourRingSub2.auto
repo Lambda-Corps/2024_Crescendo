@@ -14,45 +14,7 @@
         {
           "type": "named",
           "data": {
-            "name": "SetShooterRampToMin"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "sequential",
-                "data": {
-                  "commands": [
-                    {
-                      "type": "wait",
-                      "data": {
-                        "waitTime": 0.5
-                      }
-                    },
-                    {
-                      "type": "named",
-                      "data": {
-                        "name": "AutoShoot"
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Sub2Ring2"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoIntake_tm2"
+            "name": "SetShooterRampToSpeaker"
           }
         },
         {
@@ -68,7 +30,38 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Sub2Ring5"
+                  "pathName": "Sub2Ring2"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake_tm2"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Ring2Sub2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Sub2toRing1"
                 }
               },
               {
@@ -78,13 +71,13 @@
                     {
                       "type": "wait",
                       "data": {
-                        "waitTime": 3.0
+                        "waitTime": 2.0
                       }
                     },
                     {
                       "type": "named",
                       "data": {
-                        "name": "AutoIntake_tm3"
+                        "name": "AutoIntake_tm2"
                       }
                     }
                   ]
@@ -94,9 +87,53 @@
           }
         },
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "RIng5Ring2"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": " Ring1toPoint"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToPoint"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Copy of PointtoRing3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToMin"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake_tm2"
+                }
+              }
+            ]
           }
         },
         {
