@@ -53,6 +53,7 @@ class DriveTrain(Subsystem):
     __DRIVER_DEADBAND = 0.1
     __FORWARD_SLEW = 3  # 1/3 of a second to full speed
     __CLAMP_SPEED = 1.0
+    __TURN_PID_SPEED = 0.3
 
     def __init__(self, test_mode=False) -> None:
         super().__init__()
@@ -331,8 +332,31 @@ class DriveTrain(Subsystem):
         self._left_leader.set_control(Follower(self._right_leader.device_id, False))
         self._right_leader.set_control(self._mm_out)
 
+    def turn_ccw_positive(self, speed: float) -> None:
+        if RobotBase.isSimulation():
+            speed = self.__clamp(speed, 0.05)
+        else:
+            speed = self.__clamp(speed, self.__TURN_PID_SPEED)
+
+        if speed > 0:
+            # Turn CCW
+            left_speed = -speed
+            right_speed = speed
+        elif speed < 0:
+            left_speed = speed
+            right_speed = -speed
+        else:
+            left_speed = 0
+            right_speed = 0
+
+        self._left_percent_out.output = left_speed
+        self._right_percent_out.output = right_speed
+
+        self._left_leader.set_control(self._left_percent_out)
+        self._right_leader.set_control(self._right_percent_out)
+
     def __turn_with_pid(self) -> None:
-        curr_angle = self._gyro.getAngle()
+        curr_angle = self.__get_gyro_heading()
 
         pidoutput = self._turn_pid_controller.calculate(curr_angle)
 
@@ -342,7 +366,7 @@ class DriveTrain(Subsystem):
         elif (pidoutput > 0) and (pidoutput < self._turn_kF):
             pidoutput = self._turn_kF
 
-        self.drive_teleop(0, pidoutput)
+        self.turn_ccw_positive(pidoutput)
 
     ################## Drive train Helpers ##########################
 
@@ -378,19 +402,20 @@ class DriveTrain(Subsystem):
         return abs(self._mm_out.position - curr_right) < self._mm_tolerance
 
     def __config_turn_command(self, desired_angle: float) -> None:
-        self._turn_setpoint = desired_angle + self._gyro.getYaw()
+        # self._turn_setpoint = desired_angle + self._gyro.getYaw()
+        self._turn_setpoint = desired_angle
         self._turn_pid_controller.setSetpoint(self._turn_setpoint)
         self._turn_pid_controller.setTolerance(self._turn_tolerance)
         wpilib.SmartDashboard.putNumber("Turn Setpoint", self._turn_setpoint)
 
     def __at_turn_setpoint(self) -> bool:
-        curr_angle = self._gyro.getYaw()
+        # curr_angle = self._gyro.getYaw()
 
-        wpilib.SmartDashboard.putBoolean(
-            "At Setpoint", self._turn_pid_controller.atSetpoint()
-        )
-
-        return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
+        # wpilib.SmartDashboard.putBoolean(
+        #     "At Setpoint", self._turn_pid_controller.atSetpoint()
+        # )
+        # return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
+        return self._turn_pid_controller.atSetpoint()
 
     def __get_gyro_heading(self) -> float:
         angle = math.fmod(-self._gyro.getAngle(), 360)
@@ -456,7 +481,7 @@ class DriveTrain(Subsystem):
         )
 
         self._field.setRobotPose(pose)
-        # SmartDashboard.putNumber("Gyro Angle", self.__get_gyro_heading())
+        SmartDashboard.putNumber("CCW Angle", self.__get_gyro_heading())
 
     def simulationPeriodic(self) -> None:
         """
@@ -640,3 +665,16 @@ class TeleopDriveWithVision(Command):
     def isFinished(self) -> bool:
         # Should only run while button is held, return False
         return False
+
+
+class TurnToAnglePID(Command):
+    def __init__(self, dt: DriveTrain, angle: float, timeout=2):
+        self._dt = dt
+        self._angle = angle
+
+        self._timeout = timeout
+
+        self._timer = wpilib.Timer()
+        self._timer.start()
+
+        self.addRequirements(self._dt)

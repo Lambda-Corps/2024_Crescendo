@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 import wpilib
-from wpilib import RobotBase
+from wpilib import RobotBase, DriverStation
 from commands2 import (
     TimedCommandRobot,
     CommandScheduler,
@@ -48,6 +48,10 @@ class MyRobot(TimedCommandRobot):
         self._partner_controller = CommandXboxController(
             constants.CONTROLLER_PARTNER_PORT
         )
+
+        # Remove the joystick warnings in sim
+        if RobotBase.isSimulation():
+            DriverStation.silenceJoystickConnectionWarning(True)
 
         # Instantiate any subystems
         self._drivetrain: DriveTrain = DriveTrain(test_mode=True)
@@ -103,6 +107,12 @@ class MyRobot(TimedCommandRobot):
                 ),
                 self._drivetrain,
             ).withName("FlippedControls")
+        )
+
+        self._driver_controller.b().onTrue(
+            self._drivetrain.configure_turn_pid(-90)
+            .andThen(self._drivetrain.turn_with_pid())
+            .withName("TurnTo -90")
         )
 
         ######################## Partner controller controls #########################
