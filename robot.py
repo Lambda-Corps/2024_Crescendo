@@ -68,7 +68,7 @@ class MyRobot(TimedCommandRobot):
         self._climber: Climber = Climber()
         wpilib.SmartDashboard.putData("Climber", self._climber)
 
-        self._vision: VisionSystem = VisionSystem(False, False)
+        self._vision: VisionSystem = VisionSystem(False, True)
         # self._vision: VisionSystem = VisionSystem(True, True)
 
         self.__configure_default_commands()
@@ -249,8 +249,8 @@ class MyRobot(TimedCommandRobot):
         # [-10, 10],
         # [-11, 11],
         # [-12, 12],
-        q_elems = [0.0625, 0.125, 2.5]
-        r_elems = [-11, 11]
+        q_elems = [0.09, 0.19, 3.7]
+        r_elems = [-10, 10]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-5, 5]
