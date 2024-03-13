@@ -86,12 +86,12 @@ class MyRobot(TimedCommandRobot):
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
-        # # Left Trigger Note Aim
-        # self._driver_controller.leftTrigger().whileTrue(
-        #     TeleopDriveWithVision(
-        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-        #     ).withName("Note Driving")
-        # )
+        # Left Trigger Note Aim
+        self._driver_controller.leftTrigger().whileTrue(
+            TeleopDriveWithVision(
+                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+            ).withName("Note Driving")
+        )
         # # Right Trigger April Tag
         # self._driver_controller.rightTrigger().whileTrue(
         #     TeleopDriveWithVision(
