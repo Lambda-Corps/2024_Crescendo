@@ -16,7 +16,7 @@ from wpimath.trajectory.constraint import DifferentialDriveVoltageConstraint
 from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
 from wpimath.filter import SlewRateLimiter
 from wpilib import SmartDashboard, Field2d
-from commands2 import Subsystem, Command, cmd, InstantCommand
+from commands2 import Subsystem, Command, cmd, InstantCommand, PIDCommand
 from phoenix6 import StatusCode
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -158,6 +158,9 @@ class DriveTrain(Subsystem):
             # These must be tuned
             self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
             self._turn_kF = 0.1  # TODO Tune me
+
+        self._turn_pid_controller.setTolerance(self._turn_tolerance, 100)
+        self._turn_pid_controller.enableContinuousInput(-180, 180)
 
     def __configure_left_side_drive(self) -> None:
         self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
@@ -430,6 +433,9 @@ class DriveTrain(Subsystem):
         # return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
         return self._turn_pid_controller.atSetpoint()
 
+    def getHeading(self) -> float:
+        return self.__get_gyro_heading()
+
     def __get_gyro_heading(self) -> float:
         angle = math.fmod(-self._gyro.getAngle(), 360)
 
@@ -694,14 +700,16 @@ class TeleopDriveWithVision(Command):
         return yaw
 
 
-class TurnToAnglePID(Command):
+class TurnToAnglePID(PIDCommand):
     def __init__(self, dt: DriveTrain, angle: float, timeout=2):
-        self._dt = dt
-        self._angle = angle
+        super().__init__(
+            dt._turn_pid_controller,
+            dt.getHeading,
+            angle,
+            lambda output: dt.drive_teleop(0, output),
+            dt,
+        )
 
-        self._timeout = timeout
-
-        self._timer = wpilib.Timer()
-        self._timer.start()
-
-        self.addRequirements(self._dt)
+    def isFinished(self) -> bool:
+        # End when the controller is at the reference.
+        return self.getController().atSetpoint()
