@@ -87,7 +87,7 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         # Left Trigger Note Aim
-        self._driver_controller.leftTrigger().whileTrue(
+        self._driver_controller.rightBumper().whileTrue(
             TeleopDriveWithVision(
                 self._drivetrain, self._vision.get_note_yaw, self._driver_controller
             ).withName("Note Driving")
@@ -99,15 +99,15 @@ class MyRobot(TimedCommandRobot):
         #     ).withName("Tag Driving")
         # )
 
-        self._driver_controller.rightBumper().whileTrue(
-            RunCommand(
-                lambda: self._drivetrain.drive_teleop(
-                    self._driver_controller.getLeftY(),
-                    -self._driver_controller.getRightX(),
-                ),
-                self._drivetrain,
-            ).withName("FlippedControls")
-        )
+        # self._driver_controller.rightBumper().whileTrue(
+        #     RunCommand(
+        #         lambda: self._drivetrain.drive_teleop(
+        #             self._driver_controller.getLeftY(),
+        #             -self._driver_controller.getRightX(),
+        #         ),
+        #         self._drivetrain,
+        #     ).withName("FlippedControls")
+        # )
 
         # wpilib.SmartDashboard.putData(
         #     "Turn-90",
