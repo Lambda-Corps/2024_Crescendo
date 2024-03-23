@@ -15,8 +15,8 @@ class Intake(Subsystem):
     DETECTION_VOLTS_LOWER_BOUND = 1.5
     DETECTION_VOLTS_UPPER_BOUND = 4.0
     BACKUP_NOTE_SPEED = -0.2
-    INDEX_NOTE_SPEED = 0.5
-    INTAKE_NOTE_SPEED = 0.6
+    INDEX_NOTE_SPEED = 0.8
+    INTAKE_NOTE_SPEED = 0.8
 
     def __init__(self, test_mode=False):
         super().__init__()

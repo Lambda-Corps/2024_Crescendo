@@ -54,7 +54,7 @@ class MyRobot(TimedCommandRobot):
             DriverStation.silenceJoystickConnectionWarning(True)
 
         # Instantiate any subystems
-        self._drivetrain: DriveTrain = DriveTrain(test_mode=True)
+        self._drivetrain: DriveTrain = DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
         self._intake: Intake = Intake()
@@ -109,11 +109,12 @@ class MyRobot(TimedCommandRobot):
             ).withName("FlippedControls")
         )
 
-        self._driver_controller.b().onTrue(
-            self._drivetrain.configure_turn_pid(-90)
-            .andThen(self._drivetrain.turn_with_pid())
-            .withName("TurnTo -90")
-        )
+        # wpilib.SmartDashboard.putData(
+        #     "Turn-90",
+        #     self._drivetrain.configure_turn_pid(-90).andThen(
+        #         self._drivetrain.turn_with_pid().withName("TurnTo -90"),
+        #     ),
+        # )
 
         ######################## Partner controller controls #########################
         self._partner_controller.a().onTrue(ShootCommand(self._intake, self._shooter))
@@ -275,12 +276,17 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.setDefaultOption(
             "Sub 2 - Two Ring", PathPlannerAuto("OneRingSub2")
         )
-        self._auto_chooser.addOption("Sub 2 - Three Ring", PathPlannerAuto("TwoRingSub2"))
-        self._auto_chooser.addOption("Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2"))
+        self._auto_chooser.addOption(
+            "Sub 2 - Three Ring", PathPlannerAuto("TwoRingSub2")
+        )
+        self._auto_chooser.addOption(
+            "Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2")
+        )
         self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
-        self._auto_chooser.addOption("Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong"))
+        self._auto_chooser.addOption(
+            "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
+        )
 
-        
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
     def __configure_led_triggers(self) -> None:

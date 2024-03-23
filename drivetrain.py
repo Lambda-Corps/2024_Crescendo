@@ -54,7 +54,9 @@ class DriveTrain(Subsystem):
     __FORWARD_SLEW = 3  # 1/3 of a second to full speed
     __CLAMP_SPEED = 1.0
     __TURN_PID_SPEED = 0.3
-    __VISION_KP = .012 
+    __VISION_KP = 0.012
+    __FEEDFORWARD = 0.1
+
     def __init__(self, test_mode=False) -> None:
         super().__init__()
         self._gyro: navx.AHRS = navx.AHRS.create_spi()
@@ -335,14 +337,15 @@ class DriveTrain(Subsystem):
     def turn_ccw_positive(self, speed: float) -> None:
         if RobotBase.isSimulation():
             speed = self.__clamp(speed, 0.05)
+            wpilib.SmartDashboard.putNumber("TurnSpeed", speed)
         else:
             speed = self.__clamp(speed, self.__TURN_PID_SPEED)
 
-        if speed > 0:
+        if speed < 0:
             # Turn CCW
             left_speed = -speed
             right_speed = speed
-        elif speed < 0:
+        elif speed > 0:
             left_speed = speed
             right_speed = -speed
         else:
@@ -357,8 +360,16 @@ class DriveTrain(Subsystem):
 
     def __turn_with_pid(self) -> None:
         curr_angle = self.__get_gyro_heading()
+        setpoint = self._turn_pid_controller.getSetpoint()
 
         pidoutput = self._turn_pid_controller.calculate(curr_angle)
+
+        # if curr_angle > setpoint and pidoutput > 0:
+        #     # We need to turn right, which is -
+        #     pidoutput *= -1
+        # elif curr_angle < setpoint and pidoutput < 0:
+        #     # We need to turn left, which - from here
+        #     pidoutput *= -1
 
         # Promote the value to at least the KF
         if (pidoutput < 0) and (pidoutput > -self._turn_kF):
@@ -366,6 +377,8 @@ class DriveTrain(Subsystem):
         elif (pidoutput > 0) and (pidoutput < self._turn_kF):
             pidoutput = self._turn_kF
 
+        if RobotBase.isSimulation():
+            wpilib.SmartDashboard.putNumber("TurnPIDOut", pidoutput)
         self.turn_ccw_positive(pidoutput)
 
     ################## Drive train Helpers ##########################
@@ -647,8 +660,8 @@ class TeleopDriveWithVision(Command):
         self._yaw_getter = _yaw_getter
         self._controller = controller
         self._flipped = flipped_controls
-        SmartDashboard.putNumber("VisionKP",.012)
-        SmartDashboard.putNumber("VisionFF",.1)
+        SmartDashboard.putNumber("VisionKP", 0.012)
+        SmartDashboard.putNumber("VisionFF", 0.1)
         self.addRequirements(self._dt)
 
     def execute(self):
@@ -656,29 +669,29 @@ class TeleopDriveWithVision(Command):
         if self._flipped == False:
             # Keep the controls like normal teleop and invert
             forward *= -1
-        yaw:float = self._yaw_getter()
+        yaw: float = self._yaw_getter()
         if 1000 == yaw:
             # We didn't get a result, use the joystick
             yaw = -self._controller.getRightX()
         else:
             yaw = self._calculate_yaw(yaw)
 
-        SmartDashboard.putNumber("Yaw",yaw)
+        SmartDashboard.putNumber("Yaw", yaw)
         self._dt.drive_teleop(forward, yaw)
 
     def isFinished(self) -> bool:
         # Should only run while button is held, return False
         return False
-    
-    def _calculate_yaw (self,yaw: float) -> float :
-        yaw = -yaw * SmartDashboard.getNumber("VisionKP",.012)
-        ff = SmartDashboard.getNumber("VisionFF",.1)
-        if yaw < 0: 
-            yaw = yaw - ff 
+
+    def _calculate_yaw(self, yaw: float) -> float:
+        yaw = -yaw * DriveTrain.__VISION_KP
+
+        if yaw < 0:
+            yaw = yaw - DriveTrain.__FEEDFORWARD
         elif yaw > 0:
-            yaw += ff
-        
-        return yaw 
+            yaw += DriveTrain.__FEEDFORWARD
+
+        return yaw
 
 
 class TurnToAnglePID(Command):
