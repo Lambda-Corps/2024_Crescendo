@@ -254,7 +254,7 @@ class MyRobot(TimedCommandRobot):
         r_elems = [-10, 10]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
-            r_elems = [-5, 5]
+            r_elems = [-10, 10]
 
         AutoBuilder.configureLTV(
             self._drivetrain.get_robot_pose,
