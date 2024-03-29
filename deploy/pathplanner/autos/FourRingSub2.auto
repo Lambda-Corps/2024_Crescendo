@@ -110,37 +110,6 @@
           "data": {
             "name": "AutoShoot"
           }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "Point3ToRing3"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "SetShooterRampToMin"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "AutoIntake_tm2"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "AutoShoot"
-          }
         }
       ]
     }

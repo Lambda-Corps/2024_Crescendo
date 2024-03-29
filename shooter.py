@@ -18,12 +18,12 @@ import constants
 
 SPEAKER_RPS = 55
 FLYWHEEL_SPEEED = 1
-SHOOTER_MIN = 0.171
+SHOOTER_MIN = 0.164
 SHOOTER_MAX = 0.231
 SPEAKER_FROM_RING2 = 0.171
 AMP_FROM_AMP = 0.197
 SPEAKER_FROM_SUB = 0.195
-POINT3_AUTO = 0.190
+POINT3_AUTO = 0.175
 RPS = 0
 PERCENT_OUT = 1
 LOCATION = 2
@@ -130,6 +130,7 @@ class Shooter(Subsystem):
         # Setup the second set of flywheels
         self.lowerright = TalonSRX(constants.INDEX_RIGHT)
         self.lowerright.configFactoryDefault()
+        self.lowerright.setInverted(True)
 
         return talon
 

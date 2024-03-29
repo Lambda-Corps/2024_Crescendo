@@ -87,11 +87,11 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         # Left Trigger Note Aim
-        self._driver_controller.rightBumper().whileTrue(
-            TeleopDriveWithVision(
-                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-            ).withName("Note Driving")
-        )
+        # self._driver_controller.rightBumper().whileTrue(
+        #     TeleopDriveWithVision(
+        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+        #     ).withName("Note Driving")
+        # )
         # # Right Trigger April Tag
         # self._driver_controller.rightTrigger().whileTrue(
         #     TeleopDriveWithVision(
@@ -135,11 +135,11 @@ class MyRobot(TimedCommandRobot):
         )
         # Climber up for 10 seconds
         self._partner_controller.rightBumper().onTrue(
-            MoveClimber(self._climber, 1, 10).withName("ClimberUp10")
+            MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
         )
         # Climber down for 10 seconds
         self._partner_controller.leftBumper().onTrue(
-            MoveClimber(self._climber, -1, 10).withName("ClimberDown10")
+            MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
         )
 
         # POV for shooting positions
@@ -147,7 +147,7 @@ class MyRobot(TimedCommandRobot):
             SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2)
         )
         self._partner_controller.povDown().onTrue(
-            SetShooter(self._shooter, ShooterPosition.RING_2)
+            SetShooter(self._shooter, ShooterPosition.MIN)
         )
         self._partner_controller.povRight().onTrue(
             SetShooter(self._shooter, ShooterPosition.AMP)
