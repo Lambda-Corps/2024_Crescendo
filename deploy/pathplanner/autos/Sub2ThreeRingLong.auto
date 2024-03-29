@@ -12,6 +12,12 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "SetShooterRampToMin"
+          }
+        },
+        {
           "type": "parallel",
           "data": {
             "commands": [
