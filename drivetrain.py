@@ -349,8 +349,24 @@ class DriveTrain(Subsystem):
         self._right_leader.set_control(self._right_percent_out)
 
     def drive_velocity_volts(self, left: float, right: float) -> None:
-        self._left_volts_out.output = self._path_feedforward.calculate(left)
-        self._right_volts_out.output = self._path_feedforward.calculate(right)
+        left_pid = self._path_left_pid_controller.calculate(
+            self._left_leader.get_velocity().value_as_double * constants.DT_GEAR_RATIO,
+            left,
+        )
+        right_pid = self._path_right_pid_controller.calculate(
+            self._right_leader.get_velocity().value_as_double * constants.DT_GEAR_RATIO,
+            right,
+        )
+        self._left_volts_out.output = self._path_feedforward.calculate(left) + left_pid
+        self._right_volts_out.output = (
+            self._path_feedforward.calculate(right) + right_pid
+        )
+
+        if self._test_mode:
+            SmartDashboard.putNumber("LeftPID", left_pid)
+            SmartDashboard.putNumber("RightPID", right_pid)
+            SmartDashboard.putNumber("LeftSpeed", left)
+            SmartDashboard.putNumber("RightSpeed", right)
 
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)

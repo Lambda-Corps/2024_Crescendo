@@ -54,7 +54,7 @@ class MyRobot(TimedCommandRobot):
             DriverStation.silenceJoystickConnectionWarning(True)
 
         # Instantiate any subystems
-        self._drivetrain: DriveTrain = DriveTrain()
+        self._drivetrain: DriveTrain = DriveTrain(test_mode=True)
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
         self._intake: Intake = Intake()
