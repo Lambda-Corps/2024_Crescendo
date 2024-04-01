@@ -250,7 +250,7 @@ class MyRobot(TimedCommandRobot):
         # [-10, 10],
         # [-11, 11],
         # [-12, 12],
-        q_elems = [0.09, 0.19, 3.7]
+        q_elems = [0.10, 0.20, 3.8]
         r_elems = [-10, 10]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
@@ -285,6 +285,9 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)

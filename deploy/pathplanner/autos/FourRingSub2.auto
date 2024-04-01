@@ -110,6 +110,40 @@
           "data": {
             "name": "AutoShoot"
           }
+<<<<<<< Updated upstream
+=======
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Copy of PointtoRing3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToMin"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake_tm2"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
+          }
+>>>>>>> Stashed changes
         }
       ]
     }
