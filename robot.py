@@ -250,8 +250,13 @@ class MyRobot(TimedCommandRobot):
         # [-10, 10],
         # [-11, 11],
         # [-12, 12],
+<<<<<<< HEAD
         q_elems = [0.10, 0.20, 3.8]
         r_elems = [-10, 10]
+=======
+        q_elems = [0.09, 0.19, 3.7]
+        r_elems = [-7, 7]
+>>>>>>> e756fb3 (Changes from 04-01-2024)
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-10, 10]

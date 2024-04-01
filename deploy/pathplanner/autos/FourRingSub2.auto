@@ -110,8 +110,69 @@
           "data": {
             "name": "AutoShoot"
           }
-<<<<<<< Updated upstream
-=======
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Point3ToRing3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake_tm3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToMin"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "Point3ToRing3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "AutoIntake_tm3"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "SetShooterRampToMin"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AutoShoot"
+          }
+
         },
         {
           "type": "parallel",
@@ -143,7 +204,7 @@
           "data": {
             "name": "AutoShoot"
           }
->>>>>>> Stashed changes
+
         }
       ]
     }
