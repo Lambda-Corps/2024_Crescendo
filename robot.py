@@ -234,6 +234,10 @@ class MyRobot(TimedCommandRobot):
             SetShooter(self._shooter, ShooterPosition.RING3AUTO).withTimeout(8),
         )
 
+        NamedCommands.registerCommand(
+            "TurnToSourceSide", TurnToAnglePID(self._drivetrain, -90, 2)
+        )
+
         # increasing Qelems numbers, tries to drive more conservatively as the effect
         # In the math, what we're doing is weighting the error less heavily, meaning,
         # as the error gets larger don't react as much.  This makes the robot drive

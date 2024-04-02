@@ -153,14 +153,18 @@ class DriveTrain(Subsystem):
 
     def __create_turn_pid_objects(self) -> None:
         self._turn_setpoint = 0
-        self._turn_tolerance = 0.5  # within 3 degrees we'll call good enough
+        self._turn_tolerance = 1  # within 3 degrees we'll call good enough
         if RobotBase.isSimulation():
-            self._turn_pid_controller: PIDController = PIDController(0.00175, 0.0, 0.0)
+            self._turn_pid_controller: PIDController = PIDController(0.002, 0.0, 0.0001)
             self._turn_kF = 0.049
         else:
             # These must be tuned
             self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
             self._turn_kF = 0.1  # TODO Tune me
+
+        self._turn_pid_controller.enableContinuousInput(-180, 180)
+        self._turn_pid_controller.setTolerance(1)
+        SmartDashboard.putData("Turn PID", self._turn_pid_controller)
 
     def __create_path_pid_objects(self) -> None:
         if RobotBase.isSimulation():
@@ -327,6 +331,18 @@ class DriveTrain(Subsystem):
             self.__drive_teleop_percent(forward, turn)
         else:
             self.__drive_teleop_volts(forward, turn)
+
+    def drive_pid_turn(self, turn: float) -> None:
+        if turn < 0:
+            # Turning right
+            if turn > -self._turn_kF:
+                turn = -self._turn_kF
+        elif turn > 0:
+            # Turning left
+            if turn < self._turn_kF:
+                turn = self._turn_kF
+
+        self.__drive_teleop_volts(0, turn)
 
     def __drive_teleop_volts(self, forward: float, turn: float) -> None:
 
@@ -750,7 +766,7 @@ class TurnToAnglePID(PIDCommand):
             dt._turn_pid_controller,
             dt.getHeading,
             angle,
-            lambda output: dt.drive_teleop(0, output),
+            lambda output: dt.drive_pid_turn(output),
             dt,
         )
 
