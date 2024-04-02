@@ -19,7 +19,7 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
-from drivetrain import DriveTrain, TeleopDriveWithVision
+from drivetrain import DriveTrain, TeleopDriveWithVision, TurnToAnglePID
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
 from robot_commands import ShootCommand, StopIndexAndShooter
@@ -151,6 +151,11 @@ class MyRobot(TimedCommandRobot):
         )
         self._partner_controller.povRight().onTrue(
             SetShooter(self._shooter, ShooterPosition.AMP)
+        )
+
+        wpilib.SmartDashboard.putData("Turn90", TurnToAnglePID(self._drivetrain, 90, 3))
+        wpilib.SmartDashboard.putData(
+            "Turn-90", TurnToAnglePID(self._drivetrain, -90, 3)
         )
 
     def __configure_default_commands(self) -> None:
