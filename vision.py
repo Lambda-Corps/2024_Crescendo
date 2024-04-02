@@ -19,6 +19,7 @@ RED_SPEAKER_TAG = 4
 RED_AMP_TAG = 5
 BLUE_AMP_TAG = 6
 BLUE_SPEAKER_TAG = 7
+TAG_NONE = 100
 
 
 class CameraPoseEstimate:
@@ -50,13 +51,14 @@ class VisionSystem(Subsystem):
         else:
             self._tag_camera = self._note_camera = None
             if init_april_tag:
-                self._tag_camera = AprilTagPhotonCamera("TagCamera", Pose3d())
+                # self._tag_camera = AprilTagPhotonCamera("TagCamera", Pose3d())
+                self._tag_camera = SimpleTagDetectionPhotonCamera("TagCamera")
 
             if init_note_detection:
                 self._note_camera = NoteDetectionPhotonCamera("NoteCamera")
 
         # Keep trag of a given tag
-        self.__tag_id = 0
+        self.__tag_id = TAG_NONE
 
     def periodic(self) -> None:
         if RobotBase.isSimulation():
@@ -77,9 +79,13 @@ class VisionSystem(Subsystem):
         if self._note_camera is not None:
             return self._note_camera.get_note_yaw()
 
-    def get_pose_estimates(self) -> List[CameraPoseEstimate]:
+    def get_tag_yaw(self) -> float:
         if self._tag_camera is not None:
-            return self._tag_camera.get_pose_estimates()
+            return self._tag_camera.get_tag_yaw()
+
+    # def get_pose_estimates(self) -> List[CameraPoseEstimate]:
+    #     if self._tag_camera is not None:
+    #         return self._tag_camera.get_pose_estimates()
 
     def set_target_tag(self, position: ShooterPosition) -> None:
 
@@ -101,10 +107,7 @@ class VisionSystem(Subsystem):
             elif DriverStation.getAlliance() == DriverStation.Alliance.kRed:
                 self.__tag_id = RED_SPEAKER_TAG
 
-    def get_tag_yaw(self) -> float:
-        id: TagMetaData = self.__get_tag_metadata(self.__tag_id)
-
-        return 1000 if id is None else id._yaw
+        self._tag_camera.set_desired_target_id(self.__tag_id)
 
     def __get_tag_metadata(self, tag_id: int) -> Optional[TagMetaData]:
         if self._tag_camera is not None:
@@ -112,7 +115,7 @@ class VisionSystem(Subsystem):
 
     def has_desired_tag_in_sight(self) -> bool:
         if self._tag_camera is not None:
-            return self._tag_camera._tag_metadatas[self.__tag_id] is not None
+            return self._tag_camera.get_tag_yaw() != 1000
         else:
             return False
 
@@ -245,9 +248,7 @@ class NoteDetectionPhotonCamera:
         self._latest_result: PhotonPipelineResult = PhotonPipelineResult()
 
     def update_camera_results(self) -> None:
-        result: PhotonPipelineResult = self._camera.getLatestResult()
-        if result is not None:
-            self._latest_result: PhotonPipelineResult = self._camera.getLatestResult()
+        self._latest_result = self._camera.getLatestResult()
 
     def get_note_yaw(self) -> float:
         """
@@ -270,3 +271,43 @@ class NoteDetectionPhotonCamera:
 
         # Return the yaw from the target
         return largest_target.getYaw()
+
+
+class SimpleTagDetectionPhotonCamera:
+    def __init__(self, name: str) -> None:
+        setVersionCheckEnabled(False)
+
+        self._camera: PhotonCamera = PhotonCamera(name)
+
+        self._latest_result: PhotonPipelineResult = PhotonPipelineResult()
+
+        # Initialize to a nonsense value, we will update this during auto init and
+        # when the shooter is set to a specific site like amp or speaker
+        self._target_fididial_id = 100
+
+    def update_camera_results(self) -> None:
+        self._latest_result = self._camera.getLatestResult()
+
+    def get_tag_yaw(self) -> float:
+        """
+        Return the yaw of the April Tag, or 1000 if the correct speaker tag isn't
+        detected in the pipeline
+        """
+        target_list: List[PhotonTrackedTarget] = self._latest_result.getTargets()
+
+        # If there are no current results, return 1000 to signify no target
+        if len(target_list) == 0:
+            # we have no targets
+            return 1000
+
+        # Iterate through the target list and filter on the April tag ID.
+        for target in target_list:
+            if target.getFiducialId() == self._target_fididial_id:
+                return target.getYaw()
+
+        # We had some targets, but none matched so return the
+        # no Yaw value of 1000
+        return 1000
+
+    def set_desired_target_id(self, id: float) -> None:
+        self._target_fididial_id = id
