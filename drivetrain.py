@@ -68,6 +68,9 @@ class DriveTrain(Subsystem):
         # Create the PID controller setup for turning
         self.__create_turn_pid_objects()
 
+        # Create the FF and PID for paths
+        self.__create_path_pid_objects()
+
         # Apply all the configurations to the left and right side Talons
         self.__configure_left_side_drive()
         self.__configure_right_side_drive()
@@ -159,8 +162,31 @@ class DriveTrain(Subsystem):
             self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
             self._turn_kF = 0.1  # TODO Tune me
 
-        self._turn_pid_controller.setTolerance(self._turn_tolerance, 100)
-        self._turn_pid_controller.enableContinuousInput(-180, 180)
+    def __create_path_pid_objects(self) -> None:
+        if RobotBase.isSimulation():
+            self._path_left_pid_controller: PIDController = PIDController(
+                constants.DT_KP_DRIVE_VELO, 0, 0
+            )
+            self._path_right_pid_controller: PIDController = PIDController(
+                constants.DT_KP_DRIVE_VELO, 0, 0
+            )
+            self._path_feedforward: SimpleMotorFeedforwardMeters = (
+                SimpleMotorFeedforwardMeters(
+                    constants.DT_KS_VOLTS_SIM, constants.DT_KV_VOLTSECONDS_METER_SIM, 0
+                )
+            )
+        else:
+            self._path_left_pid_controller: PIDController = PIDController(
+                constants.DT_KP_DRIVE_VELO, 0, 0
+            )
+            self._path_right_pid_controller: PIDController = PIDController(
+                constants.DT_KP_DRIVE_VELO, 0, 0
+            )
+            self._path_feedforward: SimpleMotorFeedforwardMeters = (
+                SimpleMotorFeedforwardMeters(
+                    constants.DT_KS_VOLTS, constants.DT_KV_VOLTSECONDS_METER, 0
+                )
+            )
 
     def __configure_left_side_drive(self) -> None:
         self._left_leader = TalonFX(constants.DT_LEFT_LEADER)
@@ -322,16 +348,16 @@ class DriveTrain(Subsystem):
         self._left_leader.set_control(self._left_percent_out)
         self._right_leader.set_control(self._right_percent_out)
 
-    def drive_volts(self, left: float, right: float) -> None:
-        self._left_volts_out.output = left
-        self._right_volts_out.output = right
+    def drive_velocity_volts(self, left: float, right: float) -> None:
+        self._left_volts_out.output = self._path_feedforward.calculate(left)
+        self._right_volts_out.output = self._path_feedforward.calculate(right)
 
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
 
     def driveSpeeds(self, speeds: ChassisSpeeds) -> None:
         speeds: DifferentialDriveWheelSpeeds = self._kinematics.toWheelSpeeds(speeds)
-        self.drive_volts(speeds.left, speeds.right)
+        self.drive_velocity_volts(speeds.left, speeds.right)
 
     def drive_motion_magic(self) -> None:
         self._left_leader.set_control(Follower(self._right_leader.device_id, False))
@@ -501,6 +527,8 @@ class DriveTrain(Subsystem):
 
         self._field.setRobotPose(pose)
         SmartDashboard.putNumber("CCW Angle", self.__get_gyro_heading())
+        SmartDashboard.putNumber("LeftVelOut", self._left_volts_out.output)
+        SmartDashboard.putNumber("rightVelOut", self._right_volts_out.output)
 
     def simulationPeriodic(self) -> None:
         """
@@ -651,7 +679,7 @@ class DriveMMInches(Command):
         return self._dt.at_mm_setpoint()
 
     def end(self, interrupted: bool):
-        self._dt.drive_volts(0, 0)
+        self._dt.drive_velocity_volts(0, 0)
 
 
 class TeleopDriveWithVision(Command):

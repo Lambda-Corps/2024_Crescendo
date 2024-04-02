@@ -8,24 +8,24 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 0.8761971499218638,
-        "y": 4.124141659814398
+        "x": 1.7400000000000007,
+        "y": 2.659392809502031
       },
       "isLocked": false,
       "linkedName": "Sub3Start"
     },
     {
       "anchor": {
-        "x": 4.213828446175411,
-        "y": 1.8242287086426032
+        "x": 4.019221199973072,
+        "y": 1.6621167796733747
       },
       "prevControl": {
-        "x": 3.4045373784818835,
-        "y": 2.4116365463086247
+        "x": 3.076403817661255,
+        "y": 1.9954265209211988
       },
       "nextControl": {
-        "x": 5.832410581562465,
-        "y": 0.6494130333105603
+        "x": 4.808787539305403,
+        "y": 1.3829851501572221
       },
       "isLocked": false,
       "linkedName": null
@@ -49,7 +49,7 @@
   "eventMarkers": [],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 2.0,
+    "maxAcceleration": 1.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0
   },

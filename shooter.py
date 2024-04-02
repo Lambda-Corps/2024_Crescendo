@@ -20,10 +20,10 @@ SPEAKER_RPS = 55
 FLYWHEEL_SPEEED = 1
 SHOOTER_MIN = 0.163
 SHOOTER_MAX = 0.231
-SPEAKER_FROM_RING2 = 0.165
+SPEAKER_FROM_RING2 = 0.163
 AMP_FROM_AMP = 0.197
-SPEAKER_FROM_SUB = 0.195
-POINT3_AUTO = 0.190
+SPEAKER_FROM_SUB = 0.194
+POINT3_AUTO = 0.181
 RPS = 0
 PERCENT_OUT = 1
 LOCATION = 2
@@ -37,9 +37,9 @@ class ShooterPosition(Enum):
     [ Top Flywheel RPS, Bottom Flywheel % output, Shooter Ramp Angle]
     """
 
-    SUBWOOFER_1 = [52, 1.0, SPEAKER_FROM_SUB]
-    SUBWOOFER_2 = [52, 1.0, SPEAKER_FROM_SUB]
-    SUBWOOFER_3 = [52, 1.0, SPEAKER_FROM_SUB]
+    SUBWOOFER_1 = [52, 0.8, SPEAKER_FROM_SUB]
+    SUBWOOFER_2 = [52, 0.8, SPEAKER_FROM_SUB]
+    SUBWOOFER_3 = [52, 0.8, SPEAKER_FROM_SUB]
     RING_1 = [58, 1.0, SPEAKER_FROM_RING2]
     RING_2 = [58, 1.0, SPEAKER_FROM_RING2]
     RING_3 = [58, 1.0, SPEAKER_FROM_RING2]
@@ -130,6 +130,7 @@ class Shooter(Subsystem):
         # Setup the second set of flywheels
         self.lowerright = TalonSRX(constants.INDEX_RIGHT)
         self.lowerright.configFactoryDefault()
+        #self.lowerright.setInverted(True)
 
         return talon
 
