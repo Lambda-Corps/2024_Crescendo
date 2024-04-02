@@ -87,11 +87,11 @@ class MyRobot(TimedCommandRobot):
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
         # Left Trigger Note Aim
-        self._driver_controller.leftTrigger().whileTrue(
-            TeleopDriveWithVision(
-                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-            ).withName("Note Driving")
-        )
+        # self._driver_controller.rightBumper().whileTrue(
+        #     TeleopDriveWithVision(
+        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+        #     ).withName("Note Driving")
+        # )
         # # Right Trigger April Tag
         # self._driver_controller.rightTrigger().whileTrue(
         #     TeleopDriveWithVision(
@@ -99,15 +99,15 @@ class MyRobot(TimedCommandRobot):
         #     ).withName("Tag Driving")
         # )
 
-        self._driver_controller.rightBumper().whileTrue(
-            RunCommand(
-                lambda: self._drivetrain.drive_teleop(
-                    self._driver_controller.getLeftY(),
-                    -self._driver_controller.getRightX(),
-                ),
-                self._drivetrain,
-            ).withName("FlippedControls")
-        )
+        # self._driver_controller.rightBumper().whileTrue(
+        #     RunCommand(
+        #         lambda: self._drivetrain.drive_teleop(
+        #             self._driver_controller.getLeftY(),
+        #             -self._driver_controller.getRightX(),
+        #         ),
+        #         self._drivetrain,
+        #     ).withName("FlippedControls")
+        # )
 
         # wpilib.SmartDashboard.putData(
         #     "Turn-90",
@@ -135,11 +135,11 @@ class MyRobot(TimedCommandRobot):
         )
         # Climber up for 10 seconds
         self._partner_controller.rightBumper().onTrue(
-            MoveClimber(self._climber, 1, 10).withName("ClimberUp10")
+            MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
         )
         # Climber down for 10 seconds
         self._partner_controller.leftBumper().onTrue(
-            MoveClimber(self._climber, -1, 10).withName("ClimberDown10")
+            MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
         )
 
         # POV for shooting positions
@@ -147,7 +147,7 @@ class MyRobot(TimedCommandRobot):
             SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2)
         )
         self._partner_controller.povDown().onTrue(
-            SetShooter(self._shooter, ShooterPosition.RING_2)
+            SetShooter(self._shooter, ShooterPosition.MIN)
         )
         self._partner_controller.povRight().onTrue(
             SetShooter(self._shooter, ShooterPosition.AMP)
@@ -251,7 +251,7 @@ class MyRobot(TimedCommandRobot):
         # [-11, 11],
         # [-12, 12],
         q_elems = [0.09, 0.19, 3.7]
-        r_elems = [-10, 10]
+        r_elems = [-7, 7]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-10, 10]
@@ -285,6 +285,9 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
