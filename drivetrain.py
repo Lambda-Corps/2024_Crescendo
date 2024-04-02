@@ -159,7 +159,7 @@ class DriveTrain(Subsystem):
             self._turn_kF = 0.049
         else:
             # These must be tuned
-            self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
+            self._turn_pid_controller: PIDController = PIDController(0.02, 0, 0.001)
             self._turn_kF = 0.1  # TODO Tune me
 
         self._turn_pid_controller.enableContinuousInput(-180, 180)

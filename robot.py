@@ -54,7 +54,7 @@ class MyRobot(TimedCommandRobot):
             DriverStation.silenceJoystickConnectionWarning(True)
 
         # Instantiate any subystems
-        self._drivetrain: DriveTrain = DriveTrain(test_mode=True)
+        self._drivetrain: DriveTrain = DriveTrain()
         wpilib.SmartDashboard.putData("Drivetrain", self._drivetrain)
 
         self._intake: Intake = Intake()
@@ -297,6 +297,9 @@ class MyRobot(TimedCommandRobot):
         )
         self._auto_chooser.addOption(
             "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 2 - Four FAST", PathPlannerAuto("FourRingSub2Fast")
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)

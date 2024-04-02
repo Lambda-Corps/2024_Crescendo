@@ -40,9 +40,9 @@ class ShooterPosition(Enum):
     SUBWOOFER_1 = [52, 0.8, SPEAKER_FROM_SUB]
     SUBWOOFER_2 = [52, 0.8, SPEAKER_FROM_SUB]
     SUBWOOFER_3 = [52, 0.8, SPEAKER_FROM_SUB]
-    RING_1 = [58, 1.0, SPEAKER_FROM_RING2]
-    RING_2 = [58, 1.0, SPEAKER_FROM_RING2]
-    RING_3 = [58, 1.0, SPEAKER_FROM_RING2]
+    RING_1 = [65, 1.0, SPEAKER_FROM_RING2]
+    RING_2 = [65, 1.0, SPEAKER_FROM_RING2]
+    RING_3 = [65, 1.0, SPEAKER_FROM_RING2]
     AMP = [25, 0.5, AMP_FROM_AMP]
     MIN = [58, 1.0, SHOOTER_MIN]
     RING3AUTO = [58, 1.0, POINT3_AUTO]
@@ -130,7 +130,7 @@ class Shooter(Subsystem):
         # Setup the second set of flywheels
         self.lowerright = TalonSRX(constants.INDEX_RIGHT)
         self.lowerright.configFactoryDefault()
-        #self.lowerright.setInverted(True)
+        # self.lowerright.setInverted(True)
 
         return talon
 
