@@ -27,9 +27,11 @@ class Climber(Subsystem):
         )
         self._left_climber.configForwardSoftLimitThreshold(self.CLIMBER_TOP_LIMIT)
         self._left_climber.configForwardSoftLimitEnable(True)
+        self._left_climber.setSensorPhase(True)
 
         self._right_climber: TalonSRX = TalonSRX(constants.RIGHT_CLIMBER)
         self._right_climber.configFactoryDefault()
+        self._right_climber.setInverted(True)
         self._right_climber.configReverseLimitSwitchSource(
             LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen, 0
         )
