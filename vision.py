@@ -76,12 +76,10 @@ class VisionSystem(Subsystem):
         SmartDashboard.putBoolean("See Tag", self.has_desired_tag_in_sight())
 
     def get_note_yaw(self) -> float:
-        if self._note_camera is not None:
-            return self._note_camera.get_note_yaw()
+        return 1000 if self._note_camera is None else self._note_camera.get_note_yaw()
 
     def get_tag_yaw(self) -> float:
-        if self._tag_camera is not None:
-            return self._tag_camera.get_tag_yaw()
+        return 1000 if self._tag_camera is None else self._tag_camera.get_tag_yaw()
 
     # def get_pose_estimates(self) -> List[CameraPoseEstimate]:
     #     if self._tag_camera is not None:

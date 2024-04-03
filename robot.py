@@ -11,7 +11,7 @@ from commands2 import (
     WaitCommand,
     cmd,
 )
-from commands2.button import CommandXboxController, Trigger
+from commands2.button import CommandXboxController, Trigger, JoystickButton
 from wpimath.geometry import Pose2d
 from pathplannerlib.auto import (
     NamedCommands,
@@ -86,18 +86,25 @@ class MyRobot(TimedCommandRobot):
         # Driver controller controls first
         self._driver_controller.a().whileTrue(IntakeCommand(self._intake))
 
-        # Left Trigger Note Aim
-        # self._driver_controller.rightBumper().whileTrue(
-        #     TeleopDriveWithVision(
-        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-        #     ).withName("Note Driving")
-        # )
-        # # Right Trigger April Tag
-        # self._driver_controller.rightTrigger().whileTrue(
-        #     TeleopDriveWithVision(
-        #         self._drivetrain, self._vision.get_note_yaw, self._driver_controller
-        #     ).withName("Tag Driving")
-        # )
+        # Left Button Note Aim
+        # The WPILIB enum and our controller mapping are different.  On the Zorro
+        # controller, the "right bumper" according to WPILib is actually the left
+        # button that would be by a trigger
+        self._driver_controller.rightBumper().whileTrue(
+            TeleopDriveWithVision(
+                self._drivetrain, self._vision.get_note_yaw, self._driver_controller
+            ).withName("Note Driving")
+        )
+        # Right Trigger April Tag
+        # Create a button that maps to the proper integer number (found in driverstation)
+        self._right_controller_button: JoystickButton = JoystickButton(
+            self._driver_controller.getHID(), 13  # TODO -- Assign this correct number
+        )
+        self._right_controller_button.whileTrue(
+            TeleopDriveWithVision(
+                self._drivetrain, self._vision.get_tag_yaw, self._driver_controller
+            ).withName("Tag Driving")
+        )
 
         # self._driver_controller.rightBumper().whileTrue(
         #     RunCommand(
@@ -144,13 +151,17 @@ class MyRobot(TimedCommandRobot):
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(
-            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2)
+            cmd.runOnce(
+                lambda: self._vision.set_target_tag(ShooterPosition.SUBWOOFER_2)
+            ).andThen(SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2))
         )
         self._partner_controller.povDown().onTrue(
             SetShooter(self._shooter, ShooterPosition.MIN)
         )
         self._partner_controller.povRight().onTrue(
-            SetShooter(self._shooter, ShooterPosition.AMP)
+            cmd.runOnce(
+                lambda: self._vision.set_target_tag(ShooterPosition.AMP)
+            ).andThen(SetShooter(self._shooter, ShooterPosition.AMP))
         )
 
         wpilib.SmartDashboard.putData("Turn90", TurnToAnglePID(self._drivetrain, 90, 3))
@@ -329,6 +340,8 @@ class MyRobot(TimedCommandRobot):
         self._drivetrain.set_alliance_offset()
         self._drivetrain.reset_encoders()
 
+        # Set the proper April Tag ID target
+        self._vision.set_target_tag(ShooterPosition.SUBWOOFER_2)
         self._auto_command = self.getAutonomousCommand()
 
         if self._auto_command is not None:

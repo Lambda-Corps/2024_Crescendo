@@ -731,14 +731,17 @@ class TeleopDriveWithVision(Command):
         self.addRequirements(self._dt)
 
     def execute(self):
-        forward = self._controller.getLeftY()
-        if self._flipped == False:
-            # Keep the controls like normal teleop and invert
+        forward = -self._controller.getLeftY()
+        if self._flipped:
+            # Invert the translation
             forward *= -1
         yaw: float = self._yaw_getter()
         if 1000 == yaw:
             # We didn't get a result, use the joystick
-            yaw = -self._controller.getRightX()
+            if RobotBase.isSimulation:
+                yaw = -self._controller.getRawAxis(constants.CONTROLLER_TURN_SIM)
+            else:
+                yaw = -self._controller.getRightX()
         else:
             yaw = self._calculate_yaw(yaw)
 
