@@ -19,7 +19,7 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
-from drivetrain import DriveTrain, TeleopDriveWithVision
+from drivetrain import DriveTrain, TeleopDriveWithVision, TurnToAnglePID
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
 from robot_commands import ShootCommand, StopIndexAndShooter
@@ -153,6 +153,11 @@ class MyRobot(TimedCommandRobot):
             SetShooter(self._shooter, ShooterPosition.AMP)
         )
 
+        wpilib.SmartDashboard.putData("Turn90", TurnToAnglePID(self._drivetrain, 90, 3))
+        wpilib.SmartDashboard.putData(
+            "Turn-90", TurnToAnglePID(self._drivetrain, -90, 3)
+        )
+
     def __configure_default_commands(self) -> None:
         # Setup the default commands for subsystems
         if wpilib.RobotBase.isSimulation():
@@ -229,6 +234,10 @@ class MyRobot(TimedCommandRobot):
             SetShooter(self._shooter, ShooterPosition.RING3AUTO).withTimeout(8),
         )
 
+        NamedCommands.registerCommand(
+            "TurnToSourceSide", TurnToAnglePID(self._drivetrain, -90, 2)
+        )
+
         # increasing Qelems numbers, tries to drive more conservatively as the effect
         # In the math, what we're doing is weighting the error less heavily, meaning,
         # as the error gets larger don't react as much.  This makes the robot drive
@@ -251,7 +260,7 @@ class MyRobot(TimedCommandRobot):
         # [-11, 11],
         # [-12, 12],
         q_elems = [0.09, 0.19, 3.7]
-        r_elems = [-10, 10]
+        r_elems = [-7, 7]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-10, 10]
@@ -285,6 +294,12 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 2 - Four FAST", PathPlannerAuto("FourRingSub2Fast")
         )
 
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
