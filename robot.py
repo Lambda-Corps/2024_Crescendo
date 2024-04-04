@@ -263,7 +263,7 @@ class MyRobot(TimedCommandRobot):
         # [-11, 11],
         # [-12, 12],
         q_elems = [0.09, 0.19, 3.7]
-        r_elems = [-7, 7]
+        r_elems = [-9, 9]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-10, 10]
@@ -294,7 +294,7 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption(
             "Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2")
         )
-        self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
+        self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3ThreeRing7"))
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
         )
