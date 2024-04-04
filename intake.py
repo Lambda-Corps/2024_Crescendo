@@ -53,7 +53,7 @@ class Intake(Subsystem):
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
 
-    def drive_index(self, shooting=False):
+    def drive_index(self, shooting=False, doubleshooting=False):
         index_speed = self.INDEX_NOTE_SPEED
         intake_speed = self.INTAKE_NOTE_SPEED
         if self.__test_mode:
@@ -61,7 +61,8 @@ class Intake(Subsystem):
             intake_speed = SmartDashboard.getNumber("IntakeSpeed", 0)
         if shooting:
             index_speed = 1.0
-            intake_speed = 0
+            intake_speed = self.INTAKE_NOTE_SPEED if doubleshooting else 0
+
         self._indexroller.set(TalonSRXControlMode.PercentOutput, index_speed)
         self._intakeroller.set(TalonSRXControlMode.PercentOutput, intake_speed)
 
