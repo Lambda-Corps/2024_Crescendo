@@ -68,7 +68,7 @@ class MyRobot(TimedCommandRobot):
         self._climber: Climber = Climber()
         wpilib.SmartDashboard.putData("Climber", self._climber)
 
-        self._vision: VisionSystem = VisionSystem(False, True)
+        self._vision: VisionSystem = VisionSystem(True, True)
         # self._vision: VisionSystem = VisionSystem(True, True)
 
         self.__configure_default_commands()

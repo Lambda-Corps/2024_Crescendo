@@ -48,14 +48,15 @@ from pathplannerlib.config import ReplanningConfig, PIDConstants
 from typing import Callable
 import constants
 
+VISION_KP = 0.012
+FEEDFORWARD = 0.1
+
 
 class DriveTrain(Subsystem):
     __DRIVER_DEADBAND = 0.1
     __FORWARD_SLEW = 3  # 1/3 of a second to full speed
     __CLAMP_SPEED = 1.0
     __TURN_PID_SPEED = 0.3
-    __VISION_KP = 0.012
-    __FEEDFORWARD = 0.1
 
     def __init__(self, test_mode=False) -> None:
         super().__init__()
@@ -749,12 +750,12 @@ class TeleopDriveWithVision(Command):
         return False
 
     def _calculate_yaw(self, yaw: float) -> float:
-        yaw = -yaw * DriveTrain.__VISION_KP
+        yaw = -yaw * VISION_KP
 
         if yaw < 0:
-            yaw = yaw - DriveTrain.__FEEDFORWARD
+            yaw = yaw - FEEDFORWARD
         elif yaw > 0:
-            yaw += DriveTrain.__FEEDFORWARD
+            yaw += FEEDFORWARD
 
         return yaw
 
