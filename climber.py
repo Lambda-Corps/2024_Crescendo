@@ -14,29 +14,30 @@ import constants
 
 class Climber(Subsystem):
     CLIMBER_TOP_LIMIT = 5000
-    CLIMBER_UP_SPEED = 0.1
-    CLIMBER_DOWN_SPEED = 0.1
+    CLIMBER_UP_SPEED = 0.4
+    CLIMBER_DOWN_SPEED = -0.4
 
     def __init__(self) -> None:
         super().__init__()
 
         self._left_climber: TalonSRX = TalonSRX(constants.LEFT_CLIMBER)
         self._left_climber.configFactoryDefault()
-        self._left_climber.configReverseLimitSwitchSource(
-            LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen, 0
-        )
-        self._left_climber.configForwardSoftLimitThreshold(self.CLIMBER_TOP_LIMIT)
-        self._left_climber.configForwardSoftLimitEnable(True)
+        # self._left_climber.configReverseLimitSwitchSource(
+        #     LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen, 0
+        # )
+        # self._left_climber.configForwardSoftLimitThreshold(self.CLIMBER_TOP_LIMIT)
+        # self._left_climber.configForwardSoftLimitEnable(True)
         self._left_climber.setSensorPhase(True)
+        self._left_climber.setSelectedSensorPosition(0)
 
         self._right_climber: TalonSRX = TalonSRX(constants.RIGHT_CLIMBER)
         self._right_climber.configFactoryDefault()
         self._right_climber.setInverted(True)
-        self._right_climber.configReverseLimitSwitchSource(
-            LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen, 0
-        )
-        self._right_climber.configForwardSoftLimitThreshold(self.CLIMBER_TOP_LIMIT)
-        self._right_climber.configForwardSoftLimitEnable(True)
+        # self._right_climber.configReverseLimitSwitchSource(
+        #     LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen, 0
+        # )
+        # self._right_climber.configForwardSoftLimitThreshold(self.CLIMBER_TOP_LIMIT)
+        # self._right_climber.configForwardSoftLimitEnable(True)
 
         self._left_faults: Faults = Faults()
         self._right_faults: Faults = Faults()

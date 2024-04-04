@@ -125,14 +125,14 @@ class MyRobot(TimedCommandRobot):
         # Eject Note
         self._partner_controller.b().whileTrue(EjectNote(self._intake))
 
-        # # Right Trigger Climber Up
-        # self._partner_controller.rightTrigger().whileTrue(
-        #     MoveClimber(self._climber, 1).withName("ClimberUp")
-        # )
-        # # Left Trigger Climber Down
-        # self._partner_controller.leftTrigger().whileTrue(
-        #     MoveClimber(self._climber, -1).withName("ClimberDown")
-        # )
+        # Right Trigger Climber Up
+        self._partner_controller.rightTrigger().whileTrue(
+            MoveClimber(self._climber, 0.4).withName("ClimberUp")
+        )
+        # Left Trigger Climber Down
+        self._partner_controller.leftTrigger().whileTrue(
+            MoveClimber(self._climber, -0.4).withName("ClimberDown")
+        )
         # # Climber up for 10 seconds
         # self._partner_controller.rightBumper().onTrue(
         #     MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
