@@ -302,6 +302,13 @@ class MyRobot(TimedCommandRobot):
             "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
         )
         self._auto_chooser.addOption(
+            "Sub 1 - Wait10Drive", PathPlannerAuto("Sub1ShootWait10Drive")
+        )
+        self._auto_chooser.addOption(
+            "ShootOnly", ShootCommand(self._intake, self._shooter)
+        )
+
+        self._auto_chooser.addOption(
             "Sub 2 - Four FAST", PathPlannerAuto("FourRingSub2Fast")
         )
 
