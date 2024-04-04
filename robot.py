@@ -294,9 +294,14 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption(
             "Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2")
         )
-        self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3ThreeRing7"))
+        self._auto_chooser.addOption(
+            "Sub 3 - Ring 7", PathPlannerAuto("Sub3ThreeRing7")
+        )
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
+        )
+        self._auto_chooser.addOption(
+            "Sub 2 - Three Stage", PathPlannerAuto("ThreeRingSub2Stage")
         )
         self._auto_chooser.addOption(
             "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
