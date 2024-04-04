@@ -22,7 +22,7 @@ from pathplannerlib.auto import (
 from drivetrain import DriveTrain, TeleopDriveWithVision, TurnToAnglePID
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
-from robot_commands import ShootCommand, StopIndexAndShooter
+from robot_commands import ShootCommand, StopIndexAndShooter, DoubleShootCommand
 from leds import LEDSubsystem, FlashLEDCommand
 from climber import Climber, MoveClimber
 from vision import VisionSystem
@@ -125,22 +125,22 @@ class MyRobot(TimedCommandRobot):
         # Eject Note
         self._partner_controller.b().whileTrue(EjectNote(self._intake))
 
-        # Right Trigger Climber Up
-        self._partner_controller.rightTrigger().whileTrue(
-            MoveClimber(self._climber, 1).withName("ClimberUp")
-        )
-        # Left Trigger Climber Down
-        self._partner_controller.leftTrigger().whileTrue(
-            MoveClimber(self._climber, -1).withName("ClimberDown")
-        )
-        # Climber up for 10 seconds
-        self._partner_controller.rightBumper().onTrue(
-            MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
-        )
-        # Climber down for 10 seconds
-        self._partner_controller.leftBumper().onTrue(
-            MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
-        )
+        # # Right Trigger Climber Up
+        # self._partner_controller.rightTrigger().whileTrue(
+        #     MoveClimber(self._climber, 1).withName("ClimberUp")
+        # )
+        # # Left Trigger Climber Down
+        # self._partner_controller.leftTrigger().whileTrue(
+        #     MoveClimber(self._climber, -1).withName("ClimberDown")
+        # )
+        # # Climber up for 10 seconds
+        # self._partner_controller.rightBumper().onTrue(
+        #     MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
+        # )
+        # # Climber down for 10 seconds
+        # self._partner_controller.leftBumper().onTrue(
+        #     MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
+        # )
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(
@@ -207,6 +207,9 @@ class MyRobot(TimedCommandRobot):
         # as we name them here in the registration
         NamedCommands.registerCommand(
             "AutoShoot", ShootCommand(self._intake, self._shooter)
+        )
+        NamedCommands.registerCommand(
+            "DoubleAutoShoot", DoubleShootCommand(self._intake, self._shooter)
         )
         NamedCommands.registerCommand(
             "AutoIntake_tm2",
