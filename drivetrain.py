@@ -168,12 +168,8 @@ class DriveTrain(Subsystem):
 
     def __create_path_pid_objects(self) -> None:
         if RobotBase.isSimulation():
-            self._path_left_pid_controller: PIDController = PIDController(
-                constants.DT_KP_DRIVE_VELO, 0, 0
-            )
-            self._path_right_pid_controller: PIDController = PIDController(
-                constants.DT_KP_DRIVE_VELO, 0, 0
-            )
+            self._path_left_pid_controller: PIDController = PIDController(0.002, 0, 0)
+            self._path_right_pid_controller: PIDController = PIDController(0.002, 0, 0)
             self._path_feedforward: SimpleMotorFeedforwardMeters = (
                 SimpleMotorFeedforwardMeters(
                     constants.DT_KS_VOLTS_SIM, constants.DT_KV_VOLTSECONDS_METER_SIM, 0
@@ -181,10 +177,10 @@ class DriveTrain(Subsystem):
             )
         else:
             self._path_left_pid_controller: PIDController = PIDController(
-                constants.DT_KP_DRIVE_VELO, 0, 0
+                0.02, 0, 0.001
             )
             self._path_right_pid_controller: PIDController = PIDController(
-                constants.DT_KP_DRIVE_VELO, 0, 0
+                0.02, 0, 0.001
             )
             self._path_feedforward: SimpleMotorFeedforwardMeters = (
                 SimpleMotorFeedforwardMeters(

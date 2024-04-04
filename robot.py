@@ -22,7 +22,7 @@ from pathplannerlib.auto import (
 from drivetrain import DriveTrain, TeleopDriveWithVision, TurnToAnglePID
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
-from robot_commands import ShootCommand, StopIndexAndShooter
+from robot_commands import ShootCommand, StopIndexAndShooter, DoubleShootCommand
 from leds import LEDSubsystem, FlashLEDCommand
 from climber import Climber, MoveClimber
 from vision import VisionSystem
@@ -134,20 +134,20 @@ class MyRobot(TimedCommandRobot):
 
         # Right Trigger Climber Up
         self._partner_controller.rightTrigger().whileTrue(
-            MoveClimber(self._climber, 1).withName("ClimberUp")
+            MoveClimber(self._climber, 0.4).withName("ClimberUp")
         )
         # Left Trigger Climber Down
         self._partner_controller.leftTrigger().whileTrue(
-            MoveClimber(self._climber, -1).withName("ClimberDown")
+            MoveClimber(self._climber, -0.4).withName("ClimberDown")
         )
-        # Climber up for 10 seconds
-        self._partner_controller.rightBumper().onTrue(
-            MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
-        )
-        # Climber down for 10 seconds
-        self._partner_controller.leftBumper().onTrue(
-            MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
-        )
+        # # Climber up for 10 seconds
+        # self._partner_controller.rightBumper().onTrue(
+        #     MoveClimber(self._climber, 1, 25).withName("ClimberUp25")
+        # )
+        # # Climber down for 10 seconds
+        # self._partner_controller.leftBumper().onTrue(
+        #     MoveClimber(self._climber, -1, 25).withName("ClimberDown25")
+        # )
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(
@@ -220,6 +220,9 @@ class MyRobot(TimedCommandRobot):
             "AutoShoot", ShootCommand(self._intake, self._shooter)
         )
         NamedCommands.registerCommand(
+            "DoubleAutoShoot", DoubleShootCommand(self._intake, self._shooter)
+        )
+        NamedCommands.registerCommand(
             "AutoIntake_tm2",
             IntakeCommand(self._intake).withTimeout(2).withName("AutoIntake 2"),
         )
@@ -271,7 +274,7 @@ class MyRobot(TimedCommandRobot):
         # [-11, 11],
         # [-12, 12],
         q_elems = [0.09, 0.19, 3.7]
-        r_elems = [-7, 7]
+        r_elems = [-9, 9]
         if RobotBase.isSimulation():
             q_elems = [0.09, 0.19, 3.7]
             r_elems = [-10, 10]
@@ -302,13 +305,25 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption(
             "Sub 2 - Four Ring", PathPlannerAuto("FourRingSub2")
         )
-        self._auto_chooser.addOption("Sub 3 - Ring 7", PathPlannerAuto("Sub3OneRing7"))
+        self._auto_chooser.addOption(
+            "Sub 3 - Ring 7", PathPlannerAuto("Sub3ThreeRing7")
+        )
         self._auto_chooser.addOption(
             "Sub 2 - ThreeLong", PathPlannerAuto("Sub2ThreeRingLong")
         )
         self._auto_chooser.addOption(
+            "Sub 2 - Three Stage", PathPlannerAuto("ThreeRingSub2Stage")
+        )
+        self._auto_chooser.addOption(
             "Sub 1 - ThreeLong", PathPlannerAuto("Sub1ThreeRingLong")
         )
+        self._auto_chooser.addOption(
+            "Sub 1 - Wait10Drive", PathPlannerAuto("Sub1ShootWait10Drive")
+        )
+        self._auto_chooser.addOption(
+            "ShootOnly", ShootCommand(self._intake, self._shooter)
+        )
+
         self._auto_chooser.addOption(
             "Sub 2 - Four FAST", PathPlannerAuto("FourRingSub2Fast")
         )
