@@ -19,6 +19,7 @@ from pathplannerlib.auto import (
     AutoBuilder,
     ReplanningConfig,
 )
+from phoenix6 import SignalLogger
 from drivetrain import DriveTrain, TeleopDriveWithVision, TurnToAnglePID
 from intake import Intake, IntakeCommand, DefaultIntakeCommand, EjectNote
 from shooter import Shooter, SetShooter, ShooterPosition
@@ -81,6 +82,9 @@ class MyRobot(TimedCommandRobot):
 
         self._auto_command = None
         self._current_pose = Pose2d()
+
+        # Disable the CTRE signal logger
+        SignalLogger.stop()  # Disable for debugging later on
 
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
