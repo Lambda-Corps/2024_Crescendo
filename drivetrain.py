@@ -16,7 +16,7 @@ from wpimath.trajectory.constraint import DifferentialDriveVoltageConstraint
 from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
 from wpimath.filter import SlewRateLimiter
 from wpilib import SmartDashboard, Field2d
-from commands2 import Subsystem, Command, cmd, InstantCommand
+from commands2 import Subsystem, Command, cmd, InstantCommand, PIDCommand
 from phoenix6 import StatusCode
 from phoenix6.configs import (
     TalonFXConfiguration,
@@ -153,14 +153,18 @@ class DriveTrain(Subsystem):
 
     def __create_turn_pid_objects(self) -> None:
         self._turn_setpoint = 0
-        self._turn_tolerance = 0.5  # within 3 degrees we'll call good enough
+        self._turn_tolerance = 1  # within 3 degrees we'll call good enough
         if RobotBase.isSimulation():
-            self._turn_pid_controller: PIDController = PIDController(0.00175, 0.0, 0.0)
+            self._turn_pid_controller: PIDController = PIDController(0.002, 0.0, 0.0001)
             self._turn_kF = 0.049
         else:
             # These must be tuned
-            self._turn_pid_controller: PIDController = PIDController(0, 0, 0)
+            self._turn_pid_controller: PIDController = PIDController(0.02, 0, 0.001)
             self._turn_kF = 0.1  # TODO Tune me
+
+        self._turn_pid_controller.enableContinuousInput(-180, 180)
+        self._turn_pid_controller.setTolerance(1)
+        SmartDashboard.putData("Turn PID", self._turn_pid_controller)
 
     def __create_path_pid_objects(self) -> None:
         if RobotBase.isSimulation():
@@ -328,6 +332,18 @@ class DriveTrain(Subsystem):
         else:
             self.__drive_teleop_volts(forward, turn)
 
+    def drive_pid_turn(self, turn: float) -> None:
+        if turn < 0:
+            # Turning right
+            if turn > -self._turn_kF:
+                turn = -self._turn_kF
+        elif turn > 0:
+            # Turning left
+            if turn < self._turn_kF:
+                turn = self._turn_kF
+
+        self.__drive_teleop_volts(0, turn)
+
     def __drive_teleop_volts(self, forward: float, turn: float) -> None:
 
         speeds = wpilib.drive.DifferentialDrive.curvatureDriveIK(forward, turn, True)
@@ -349,8 +365,24 @@ class DriveTrain(Subsystem):
         self._right_leader.set_control(self._right_percent_out)
 
     def drive_velocity_volts(self, left: float, right: float) -> None:
-        self._left_volts_out.output = self._path_feedforward.calculate(left)
-        self._right_volts_out.output = self._path_feedforward.calculate(right)
+        left_pid = self._path_left_pid_controller.calculate(
+            self._left_leader.get_velocity().value_as_double * constants.DT_GEAR_RATIO,
+            left,
+        )
+        right_pid = self._path_right_pid_controller.calculate(
+            self._right_leader.get_velocity().value_as_double * constants.DT_GEAR_RATIO,
+            right,
+        )
+        self._left_volts_out.output = self._path_feedforward.calculate(left) + left_pid
+        self._right_volts_out.output = (
+            self._path_feedforward.calculate(right) + right_pid
+        )
+
+        if self._test_mode:
+            SmartDashboard.putNumber("LeftPID", left_pid)
+            SmartDashboard.putNumber("RightPID", right_pid)
+            SmartDashboard.putNumber("LeftSpeed", left)
+            SmartDashboard.putNumber("RightSpeed", right)
 
         self._left_leader.set_control(self._left_volts_out)
         self._right_leader.set_control(self._right_volts_out)
@@ -458,6 +490,9 @@ class DriveTrain(Subsystem):
         # )
         # return abs(curr_angle - self._turn_setpoint) < self._turn_tolerance
         return self._turn_pid_controller.atSetpoint()
+
+    def getHeading(self) -> float:
+        return self.__get_gyro_heading()
 
     def __get_gyro_heading(self) -> float:
         angle = math.fmod(-self._gyro.getAngle(), 360)
@@ -725,14 +760,16 @@ class TeleopDriveWithVision(Command):
         return yaw
 
 
-class TurnToAnglePID(Command):
+class TurnToAnglePID(PIDCommand):
     def __init__(self, dt: DriveTrain, angle: float, timeout=2):
-        self._dt = dt
-        self._angle = angle
+        super().__init__(
+            dt._turn_pid_controller,
+            dt.getHeading,
+            angle,
+            lambda output: dt.drive_pid_turn(output),
+            dt,
+        )
 
-        self._timeout = timeout
-
-        self._timer = wpilib.Timer()
-        self._timer.start()
-
-        self.addRequirements(self._dt)
+    def isFinished(self) -> bool:
+        # End when the controller is at the reference.
+        return self.getController().atSetpoint()
