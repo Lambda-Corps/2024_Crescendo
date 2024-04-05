@@ -14,8 +14,8 @@ import constants
 
 class Climber(Subsystem):
     CLIMBER_TOP_LIMIT = 5000
-    CLIMBER_UP_SPEED = 0.4
-    CLIMBER_DOWN_SPEED = -0.4
+    CLIMBER_UP_SPEED = 1
+    CLIMBER_DOWN_SPEED = -1
 
     def __init__(self) -> None:
         super().__init__()

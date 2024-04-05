@@ -335,13 +335,14 @@ class MyRobot(TimedCommandRobot):
         wpilib.SmartDashboard.putData("AutoChooser", self._auto_chooser)
 
     def __configure_led_triggers(self) -> None:
-        note_trigger: Trigger = Trigger(self._intake.has_note).onTrue(
-            FlashLEDCommand(self._leds, 1.5)
-        )
+        # note_trigger: Trigger = Trigger(self._intake.has_note).onTrue(
+        #     FlashLEDCommand(self._leds, 1.5)
+        # )
 
-        tag_trigger: Trigger = Trigger(self._vision.has_desired_tag_in_sight).onTrue(
-            FlashLEDCommand(self._leds, 1.5)
-        )
+        # tag_trigger: Trigger = Trigger(self._vision.has_desired_tag_in_sight).onTrue(
+        #     FlashLEDCommand(self._leds, 1.5)
+        # )
+        pass
 
     def getAutonomousCommand(self) -> Command:
         return self._auto_chooser.getSelected()
