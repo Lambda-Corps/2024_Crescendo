@@ -69,7 +69,7 @@ class MyRobot(TimedCommandRobot):
         self._climber: Climber = Climber()
         wpilib.SmartDashboard.putData("Climber", self._climber)
 
-        self._vision: VisionSystem = VisionSystem(True, True)
+        self._vision: VisionSystem = VisionSystem(False, True)
         # self._vision: VisionSystem = VisionSystem(True, True)
 
         self.__configure_default_commands()
@@ -155,17 +155,13 @@ class MyRobot(TimedCommandRobot):
 
         # POV for shooting positions
         self._partner_controller.povLeft().onTrue(
-            cmd.runOnce(
-                lambda: self._vision.set_target_tag(ShooterPosition.SUBWOOFER_2)
-            ).andThen(SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2))
+            SetShooter(self._shooter, ShooterPosition.SUBWOOFER_2)
         )
         self._partner_controller.povDown().onTrue(
             SetShooter(self._shooter, ShooterPosition.MIN)
         )
         self._partner_controller.povRight().onTrue(
-            cmd.runOnce(
-                lambda: self._vision.set_target_tag(ShooterPosition.AMP)
-            ).andThen(SetShooter(self._shooter, ShooterPosition.AMP))
+            SetShooter(self._shooter, ShooterPosition.AMP)
         )
 
         wpilib.SmartDashboard.putData("Turn90", TurnToAnglePID(self._drivetrain, 90, 3))
@@ -325,6 +321,9 @@ class MyRobot(TimedCommandRobot):
             "Sub 1 - Wait10Drive", PathPlannerAuto("Sub1ShootWait10Drive")
         )
         self._auto_chooser.addOption(
+            "Sub 1 - Wait10 FAST", PathPlannerAuto("Sub1ShootWait10DriveFAST")
+        )
+        self._auto_chooser.addOption(
             "ShootOnly", ShootCommand(self._intake, self._shooter)
         )
 
@@ -361,7 +360,7 @@ class MyRobot(TimedCommandRobot):
         self._drivetrain.reset_encoders()
 
         # Set the proper April Tag ID target
-        self._vision.set_target_tag(ShooterPosition.SUBWOOFER_2)
+        # self._vision.set_target_tag(ShooterPosition.SUBWOOFER_2)
         self._auto_command = self.getAutonomousCommand()
 
         if self._auto_command is not None:
