@@ -42,6 +42,9 @@ class MyRobot(TimedCommandRobot):
         button bindings, and operator interface pieces like driver
         dashboards
         """
+        # Disable the CTRE signal logger
+        SignalLogger.stop()  # Disable for debugging later on
+
         # Setup the operator interface (typically CommandXboxController)
         self._driver_controller = CommandXboxController(
             constants.CONTROLLER_DRIVER_PORT
@@ -82,9 +85,6 @@ class MyRobot(TimedCommandRobot):
 
         self._auto_command = None
         self._current_pose = Pose2d()
-
-        # Disable the CTRE signal logger
-        SignalLogger.stop()  # Disable for debugging later on
 
     def __configure_button_bindings(self) -> None:
         # Driver controller controls first
