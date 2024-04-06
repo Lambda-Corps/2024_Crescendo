@@ -178,10 +178,10 @@ class DriveTrain(Subsystem):
             )
         else:
             self._path_left_pid_controller: PIDController = PIDController(
-                0.02, 0, 0.001
+                0.01, 0, 0.001
             )
             self._path_right_pid_controller: PIDController = PIDController(
-                0.02, 0, 0.001
+                0.01, 0, 0.001
             )
             self._path_feedforward: SimpleMotorFeedforwardMeters = (
                 SimpleMotorFeedforwardMeters(
