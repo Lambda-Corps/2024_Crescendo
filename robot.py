@@ -323,6 +323,7 @@ class MyRobot(TimedCommandRobot):
         self._auto_chooser.addOption(
             "Sub 1 - Wait10 FAST", PathPlannerAuto("Sub1ShootWait10DriveFAST")
         )
+        self._auto_chooser.addOption("Sub3Disruptor", PathPlannerAuto("Sub3Disruptor"))
         self._auto_chooser.addOption(
             "ShootOnly", ShootCommand(self._intake, self._shooter)
         )
